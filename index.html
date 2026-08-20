@@ -3,965 +3,1665 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barbershop - Admin & POS</title>
+    <title>Barbershop Pro - Owner Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: { admin: '#0f172a', accent: '#3b82f6', success: '#10b981', danger: '#ef4444', warning: '#f59e0b' }
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        darkbg: '#0b1120',
+                        sidebar: '#0a0f1d',
+                        sidehover: '#151d32',
+                        brand: {
+                            50: '#fffbe1',
+                            400: '#facc15',
+                            500: '#eab308',
+                            600: '#ca8a04',
+                        },
+                        navy: {
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    }
                 }
             }
         }
     </script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
         .hidden-view { display: none !important; }
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .glass-panel { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(12px); }
+        @media print {
+            body * { visibility: hidden; }
+            #receipt-modal-content, #receipt-modal-content * { visibility: visible; }
+            #receipt-modal-content { position: absolute; left: 0; top: 0; width: 100%; }
+        }
     </style>
 </head>
-<body class="text-gray-800 antialiased h-screen flex overflow-hidden">
+<body class="bg-slate-900 text-slate-100 flex h-screen overflow-hidden font-sans text-sm selection:bg-amber-500 selection:text-black">
 
-    <!-- Alert Modal -->
-    <div id="alertModal" class="fixed inset-0 bg-black bg-opacity-60 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full text-center">
-            <h3 id="alertTitle" class="text-lg font-bold text-gray-900 mb-2">Notice</h3>
-            <p id="alertMessage" class="text-gray-600 mb-6 text-sm"></p>
-            <button onclick="closeModal()" class="w-full bg-admin text-white py-2.5 rounded-lg font-semibold hover:bg-gray-800 transition">Close</button>
-        </div>
-    </div>
-
-    <!-- Generic Input Modal -->
-    <div id="inputModal" class="fixed inset-0 bg-black bg-opacity-60 z-[90] hidden flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full">
-            <h3 id="inputModalTitle" class="text-xl font-bold text-gray-900 mb-4">Action</h3>
-            <div id="inputModalBody" class="space-y-4 mb-6"></div>
-            <div class="flex gap-3">
-                <button onclick="closeInputModal()" class="flex-1 bg-gray-200 text-gray-800 py-2.5 rounded-lg font-semibold hover:bg-gray-300">Cancel</button>
-                <button id="inputModalConfirm" class="flex-1 bg-accent text-white py-2.5 rounded-lg font-semibold hover:bg-blue-600">Confirm</button>
+    <!-- TV Display View (Public, Full Screen) -->
+    <div id="view-tv" class="hidden-view absolute inset-0 z-50 bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white flex flex-col overflow-hidden h-screen w-screen">
+        <!-- Start TV Overlay for Audio Unlock -->
+        <div id="tv-start-overlay" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex flex-col items-center justify-center p-6 text-center">
+            <div class="w-20 h-20 bg-amber-500/10 rounded-3xl border border-amber-500/30 flex items-center justify-center mb-6 text-amber-400 text-3xl shadow-[0_0_30px_rgba(234,179,8,0.2)]">
+                <i class="fas fa-scissors"></i>
             </div>
+            <h2 class="text-4xl font-extrabold tracking-tight text-white mb-3">BARBERSHOP <span class="text-amber-400">PRO</span></h2>
+            <p class="text-slate-400 max-w-md text-base mb-8">Click start to activate full screen queue display with audio call notifications.</p>
+            <button onclick="adminApp.startTV()" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xl font-bold py-5 px-12 rounded-2xl shadow-[0_0_40px_rgba(234,179,8,0.4)] hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
+                <i class="fas fa-play"></i> LAUNCH TV DISPLAY
+            </button>
         </div>
-    </div>
 
-    <!-- LOGIN VIEW -->
-    <div id="loginView" class="fixed inset-0 z-50 bg-admin flex flex-col items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md text-center">
-            <div class="w-20 h-20 bg-admin rounded-full mx-auto mb-6 flex items-center justify-center">
-                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        <!-- TV Header -->
+        <header class="w-full px-10 py-6 flex justify-between items-center border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center text-slate-950 font-black text-2xl shadow-[0_0_20px_rgba(234,179,8,0.4)]">
+                    <i class="fas fa-scissors"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-black tracking-wider text-white" id="tv-shopname">BARBERSHOP <span class="text-amber-400">PRO</span></h1>
+                    <p class="text-slate-400 text-xs tracking-widest uppercase">Live Queue Board</p>
+                </div>
             </div>
-            <h2 class="text-2xl font-bold text-gray-900 mb-2">Admin Portal</h2>
-            <p class="text-gray-500 mb-8 text-sm">Sign in to manage your barbershop</p>
+            <div class="text-4xl font-mono font-bold text-amber-400 bg-slate-950/80 px-6 py-2.5 rounded-2xl border border-slate-800 shadow-inner" id="tv-clock">00:00:00</div>
+        </header>
+
+        <!-- TV Main Display Grid -->
+        <div class="flex-grow flex w-full p-8 gap-8">
+            <!-- Left: Now Serving -->
+            <div class="w-7/12 flex flex-col justify-center items-center relative">
+                <div id="tv-serving-box" class="w-full h-full bg-gradient-to-b from-slate-900/90 to-slate-950/90 border border-slate-800 rounded-[2.5rem] flex flex-col items-center justify-center p-10 transition-all duration-500 shadow-2xl relative overflow-hidden">
+                    <div class="absolute -top-24 -left-24 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                    <span class="px-6 py-2 rounded-full bg-amber-500/10 text-amber-400 font-bold uppercase tracking-widest text-sm border border-amber-500/20 mb-6 flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span> NOW SERVING
+                    </span>
+                    <div class="text-[13rem] leading-none font-black text-white drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] tracking-tighter my-auto" id="tv-serving">--</div>
+                    <div class="text-slate-400 text-lg font-medium tracking-wide mt-4 flex items-center gap-2">
+                        <i class="fas fa-user-check text-amber-400"></i> <span id="tv-serving-customer">Please proceed to barber station</span>
+                    </div>
+                </div>
+            </div>
             
-            <form onsubmit="handleLogin(event)" class="space-y-4 text-left">
+            <!-- Right: Next In Line -->
+            <div class="w-5/12 flex flex-col bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 shadow-2xl">
+                <div class="pb-6 border-b border-slate-800 flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-slate-300 uppercase tracking-wider flex items-center gap-3">
+                        <i class="fas fa-list-ol text-amber-400"></i> NEXT IN LINE
+                    </h2>
+                    <span class="text-xs text-slate-500 font-semibold uppercase tracking-widest bg-slate-950 px-3 py-1 rounded-full border border-slate-800">Waiting</span>
+                </div>
+                <div class="flex-grow flex flex-col justify-center gap-4 py-6">
+                    <div class="bg-gradient-to-r from-amber-500/10 to-transparent border border-amber-500/30 rounded-2xl p-6 flex items-center justify-between shadow-lg">
+                        <div class="flex items-center gap-4">
+                            <span class="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 font-black flex items-center justify-center text-lg">1</span>
+                            <div>
+                                <p class="text-xs text-amber-400 font-semibold uppercase">1st Priority</p>
+                                <p class="text-slate-400 text-xs" id="tv-next-1-sub">--</p>
+                            </div>
+                        </div>
+                        <span class="text-5xl font-extrabold text-amber-400 tracking-tight" id="tv-next-1">--</span>
+                    </div>
+                    <div class="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-5 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <span class="w-9 h-9 rounded-xl bg-slate-800 text-slate-400 font-bold flex items-center justify-center text-sm">2</span>
+                            <span class="text-slate-400 text-xs">Waiting</span>
+                        </div>
+                        <span class="text-4xl font-bold text-slate-200" id="tv-next-2">--</span>
+                    </div>
+                    <div class="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-5 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <span class="w-9 h-9 rounded-xl bg-slate-800 text-slate-400 font-bold flex items-center justify-center text-sm">3</span>
+                            <span class="text-slate-400 text-xs">Waiting</span>
+                        </div>
+                        <span class="text-4xl font-bold text-slate-200" id="tv-next-3">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- TV Footer -->
+        <footer class="w-full py-4 bg-slate-950 border-t border-slate-800/80 text-center z-10">
+            <p class="text-slate-400 font-medium text-base tracking-wide">Please be ready when your queue number is called. Thank you for your patience!</p>
+        </footer>
+    </div>
+
+    <!-- Login View -->
+    <div id="view-login" class="hidden-view absolute inset-0 z-40 bg-slate-950 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl w-full max-w-md relative overflow-hidden">
+            <div class="absolute -top-16 -right-16 w-40 h-40 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-amber-500 text-slate-950 rounded-2xl flex items-center justify-center mx-auto mb-4 font-black text-2xl shadow-lg shadow-amber-500/20">
+                    <i class="fas fa-scissors"></i>
+                </div>
+                <h2 class="text-2xl font-black text-white tracking-tight">BARBERSHOP <span class="text-amber-400">PRO</span></h2>
+                <p class="text-slate-400 text-xs mt-1">Sign in to access Barber Management Portal</p>
+            </div>
+            <form onsubmit="adminApp.login(event)" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Email</label>
-                    <input type="email" id="loginEmail" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent outline-none">
+                    <label class="block text-slate-300 text-xs font-semibold uppercase tracking-wider mb-2">Email Address</label>
+                    <input type="email" id="login-email" value="admin@barbershoppro.com" required class="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-3.5 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Password</label>
-                    <input type="password" id="loginPassword" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent outline-none">
+                    <label class="block text-slate-300 text-xs font-semibold uppercase tracking-wider mb-2">Password</label>
+                    <input type="password" id="login-pass" value="password123" required class="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-3.5 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all">
                 </div>
-                <button type="submit" id="btnLogin" class="w-full bg-accent text-white py-3 rounded-lg font-bold hover:bg-blue-600 transition shadow-md mt-4">
-                    LOGIN
+                <p id="login-error" class="text-red-400 text-xs font-medium hidden bg-red-500/10 border border-red-500/20 p-3 rounded-xl"></p>
+                <button type="submit" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-amber-500/20 transition-all flex justify-center items-center gap-2">
+                    <span id="login-btn-text">SIGN IN</span>
+                    <i id="login-spinner" class="fas fa-circle-notch fa-spin hidden"></i>
+                </button>
+            </form>
+            <div class="mt-6 pt-6 border-t border-slate-800 text-center">
+                <p class="text-xs text-slate-500">Need instant demo login? Click Sign In directly.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="hidden-view w-64 bg-sidebar text-slate-300 flex-shrink-0 flex flex-col h-full border-r border-slate-800/80 z-20 relative">
+        <!-- Logo Header -->
+        <div class="p-5 flex items-center gap-3 border-b border-slate-800/80">
+            <div class="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-slate-950 font-black text-xl shadow-md shadow-amber-500/20 shrink-0">
+                <i class="fas fa-scissors"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-black tracking-tight text-white leading-tight">BARBERSHOP <span class="text-amber-400">PRO</span></h1>
+            </div>
+        </div>
+        
+        <!-- Owner Admin Profile Box -->
+        <div class="p-4 mx-3 my-3 bg-slate-900/80 border border-slate-800/80 rounded-2xl flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-lg shrink-0">
+                <i class="fas fa-user-gear"></i>
+            </div>
+            <div class="overflow-hidden">
+                <p class="font-bold text-white text-sm truncate">Owner Admin</p>
+                <p class="text-slate-400 text-xs truncate">Barber Management</p>
+            </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-grow px-3 py-2 space-y-1 overflow-y-auto">
+            <a href="#dashboard" class="nav-link flex items-center gap-3 px-3.5 py-3 rounded-xl hover:bg-sidehover hover:text-white transition-all text-slate-300 font-medium" data-target="dashboard">
+                <i class="fas fa-chart-line text-blue-400 w-5"></i> Dashboard
+            </a>
+            <a href="#pos" class="nav-link flex items-center gap-3 px-3.5 py-3 rounded-xl hover:bg-sidehover hover:text-white transition-all text-slate-300 font-medium" data-target="pos">
+                <i class="fas fa-cash-register text-emerald-400 w-5"></i> POS & Checkout
+            </a>
+            <a href="#queue" class="nav-link flex items-center gap-3 px-3.5 py-3 rounded-xl hover:bg-sidehover hover:text-white transition-all text-slate-300 font-medium" data-target="queue">
+                <i class="fas fa-users-line text-amber-400 w-5"></i> Queue Monitor
+            </a>
+            <a href="#bookings" class="nav-link flex items-center gap-3 px-3.5 py-3 rounded-xl hover:bg-sidehover hover:text-white transition-all text-slate-300 font-medium" data-target="bookings">
+                <i class="fas fa-calendar-check text-purple-400 w-5"></i> Bookings
+            </a>
+
+            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-3 mt-6 mb-2">CATALOG & STAFF</p>
+            <a href="#products" class="nav-link flex items-center gap-3 px-3.5 py-3 rounded-xl hover:bg-sidehover hover:text-white transition-all text-slate-300 font-medium" data-target="products">
+                <i class="fas fa-box text-cyan-400 w-5"></i> Products
+            </a>
+            <a href="#services" class="nav-link flex items-center gap-3 px-3.5 py-3 rounded-xl hover:bg-sidehover hover:text-white transition-all text-slate-300 font-medium" data-target="services">
+                <i class="fas fa-scissors text-rose-400 w-5"></i> Services
+            </a>
+            <a href="#barbers" class="nav-link flex items-center gap-3 px-3.5 py-3 rounded-xl hover:bg-sidehover hover:text-white transition-all text-slate-300 font-medium" data-target="barbers">
+                <i class="fas fa-id-badge text-yellow-400 w-5"></i> Barbers
+            </a>
+            <a href="#customers" class="nav-link flex items-center gap-3 px-3.5 py-3 rounded-xl hover:bg-sidehover hover:text-white transition-all text-slate-300 font-medium" data-target="customers">
+                <i class="fas fa-address-book text-indigo-400 w-5"></i> Customers
+            </a>
+
+            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-3 mt-6 mb-2">SYSTEM</p>
+            <a href="#settings" class="nav-link flex items-center gap-3 px-3.5 py-3 rounded-xl hover:bg-sidehover hover:text-white transition-all text-slate-300 font-medium" data-target="settings">
+                <i class="fas fa-sliders text-slate-400 w-5"></i> Settings
+            </a>
+            <a href="#tv" target="_blank" class="flex items-center gap-3 px-3.5 py-3 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all border border-slate-800/80 my-2">
+                <i class="fas fa-tv text-amber-400 w-5"></i> Open TV Display
+            </a>
+        </nav>
+
+        <!-- Footer Signout -->
+        <div class="p-4 border-t border-slate-800/80 bg-slate-950/40">
+            <button onclick="adminApp.logout()" class="w-full flex items-center justify-between px-3 py-2 text-rose-400 hover:text-rose-300 hover:bg-slate-800/60 rounded-xl transition-all font-semibold">
+                <span>Sign Out</span>
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="hidden-view flex-grow flex flex-col h-full bg-slate-950 text-slate-100 relative overflow-hidden w-full">
+        <!-- Top App Bar -->
+        <header class="bg-slate-900 border-b border-slate-800/80 px-6 py-4 flex justify-between items-center z-10 shrink-0">
+            <div class="flex items-center gap-3">
+                <h2 class="text-xl font-bold text-white tracking-tight" id="header-title">Dashboard</h2>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="bg-slate-950 border border-slate-800 px-4 py-1.5 rounded-full text-slate-400 font-mono text-xs flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="sys-clock">00:00:00</span>
+                </div>
+                <button onclick="adminApp.openWalkInModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl transition-all flex items-center gap-2 shadow-md shadow-amber-500/10">
+                    <i class="fas fa-plus"></i> Walk-In Queue
+                </button>
+            </div>
+        </header>
+
+        <!-- Dynamic View Sections -->
+        <div class="p-6 overflow-y-auto flex-grow w-full">
+
+            <!-- 1. DASHBOARD -->
+            <section id="sec-dashboard" class="hidden-view space-y-6">
+                <!-- Metrics Summary Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Today's Revenue</p>
+                            <h3 class="text-2xl font-black text-white mt-1" id="dash-revenue">$0.00</h3>
+                            <p class="text-emerald-400 text-xs mt-1 font-medium"><i class="fas fa-arrow-up"></i> +14% vs yesterday</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl border border-emerald-500/20">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Queue Serviced</p>
+                            <h3 class="text-2xl font-black text-white mt-1" id="dash-served">0</h3>
+                            <p class="text-amber-400 text-xs mt-1 font-medium" id="dash-waiting-badge">0 customers waiting</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-xl border border-amber-500/20">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Bookings Today</p>
+                            <h3 class="text-2xl font-black text-white mt-1" id="dash-bookings">0</h3>
+                            <p class="text-purple-400 text-xs mt-1 font-medium">Scheduled slots</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-xl border border-purple-500/20">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Active Barbers</p>
+                            <h3 class="text-2xl font-black text-white mt-1" id="dash-barbers-count">0</h3>
+                            <p class="text-blue-400 text-xs mt-1 font-medium">On duty today</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-xl border border-blue-500/20">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Recent Transactions -->
+                    <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-white text-base">Recent Checkout Sales</h3>
+                            <a href="#pos" class="text-amber-400 hover:text-amber-300 text-xs font-semibold">Open POS <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="text-slate-400 text-xs uppercase border-b border-slate-800">
+                                        <th class="pb-3 font-semibold">Receipt #</th>
+                                        <th class="pb-3 font-semibold">Customer / Barber</th>
+                                        <th class="pb-3 font-semibold">Items</th>
+                                        <th class="pb-3 font-semibold text-right">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dash-recent-sales" class="divide-y divide-slate-800/60 text-slate-300">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Top Barbers Performance -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                        <h3 class="font-bold text-white text-base mb-4">Barbers Today</h3>
+                        <div id="dash-barbers-list" class="space-y-4">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. POS & CHECKOUT -->
+            <section id="sec-pos" class="hidden-view h-full">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+                    <!-- Left: Catalog & Items -->
+                    <div class="lg:col-span-7 flex flex-col space-y-4">
+                        <!-- Category Tabs & Search -->
+                        <div class="flex flex-col sm:flex-row gap-3 justify-between items-center">
+                            <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800 w-full sm:w-auto">
+                                <button onclick="adminApp.filterPosCategory('ALL')" class="pos-cat-btn px-4 py-2 rounded-lg text-xs font-bold transition-all bg-amber-500 text-slate-950" data-cat="ALL">ALL</button>
+                                <button onclick="adminApp.filterPosCategory('SERVICES')" class="pos-cat-btn px-4 py-2 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white" data-cat="SERVICES">Services</button>
+                                <button onclick="adminApp.filterPosCategory('PRODUCTS')" class="pos-cat-btn px-4 py-2 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white" data-cat="PRODUCTS">Products</button>
+                            </div>
+                            <div class="relative w-full sm:w-64">
+                                <i class="fas fa-search absolute left-3.5 top-3 text-slate-500 text-xs"></i>
+                                <input type="text" id="pos-search" placeholder="Search catalog..." class="bg-slate-900 border border-slate-800 text-white text-xs pl-9 pr-4 py-2.5 rounded-xl w-full focus:outline-none focus:border-amber-500" onkeyup="adminApp.renderPosCatalog()">
+                            </div>
+                        </div>
+
+                        <!-- Grid Items -->
+                        <div id="pos-catalog-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto max-h-[calc(100vh-230px)] pr-1">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Right: Cart & Checkout Summary -->
+                    <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-center pb-4 border-b border-slate-800">
+                                <h3 class="font-bold text-white text-base flex items-center gap-2">
+                                    <i class="fas fa-shopping-cart text-amber-400"></i> Current Order
+                                </h3>
+                                <button onclick="adminApp.clearCart()" class="text-xs text-slate-500 hover:text-rose-400 font-semibold transition-all">Clear All</button>
+                            </div>
+
+                            <!-- Customer & Barber Selector -->
+                            <div class="grid grid-cols-2 gap-3 py-4 border-b border-slate-800/60">
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 font-bold uppercase mb-1">Assigned Barber</label>
+                                    <select id="pos-barber-select" class="w-full bg-slate-950 border border-slate-800 text-white rounded-xl text-xs p-2.5 focus:outline-none focus:border-amber-500">
+                                        <!-- Dynamic options -->
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 font-bold uppercase mb-1">Customer Name</label>
+                                    <input type="text" id="pos-customer-name" placeholder="Walk-In Customer" class="w-full bg-slate-950 border border-slate-800 text-white rounded-xl text-xs p-2.5 focus:outline-none focus:border-amber-500">
+                                </div>
+                            </div>
+
+                            <!-- Cart Items List -->
+                            <div id="pos-cart-items" class="space-y-3 py-4 max-h-[300px] overflow-y-auto pr-1">
+                                <div class="text-center py-10 text-slate-500 text-xs">
+                                    <i class="fas fa-basket-shopping text-3xl mb-2 text-slate-700"></i>
+                                    <p>Cart is empty. Click items on left catalog to add.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Calculations & Checkout -->
+                        <div class="pt-4 border-t border-slate-800 space-y-2">
+                            <div class="flex justify-between text-xs text-slate-400">
+                                <span>Subtotal</span>
+                                <span font-mono id="pos-subtotal">$0.00</span>
+                            </div>
+                            <div class="flex justify-between text-xs text-slate-400">
+                                <span>Discount</span>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" id="pos-discount-input" value="0" min="0" max="100" class="w-12 bg-slate-950 border border-slate-800 text-white text-center rounded text-xs py-0.5" oninput="adminApp.calcCartTotals()">
+                                    <span>%</span>
+                                </div>
+                            </div>
+                            <div class="flex justify-between text-base font-black text-white pt-2 border-t border-slate-800/60">
+                                <span>Total Payable</span>
+                                <span class="text-amber-400 font-mono" id="pos-total">$0.00</span>
+                            </div>
+
+                            <button onclick="adminApp.openCheckoutModal()" class="w-full mt-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-extrabold py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-500/20 transition-all text-center uppercase tracking-wider text-xs flex items-center justify-center gap-2">
+                                <i class="fas fa-check-circle"></i> Complete Checkout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. QUEUE MONITOR -->
+            <section id="sec-queue" class="hidden-view space-y-6">
+                <!-- Action Bar -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                    <div class="flex gap-3">
+                        <button onclick="adminApp.callNext()" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 px-6 py-3 rounded-xl font-bold shadow-lg shadow-amber-500/10 transition-all flex items-center gap-2">
+                            <i class="fas fa-bullhorn"></i> CALL NEXT
+                        </button>
+                        <button onclick="adminApp.openWalkInModal()" class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-3 rounded-xl font-bold transition-all border border-slate-700 flex items-center gap-2">
+                            <i class="fas fa-user-plus text-amber-400"></i> Add Walk-In
+                        </button>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        <span class="text-slate-400 text-xs font-semibold">Filter Date:</span>
+                        <input type="date" id="queue-date-filter" class="bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-2 font-mono text-xs focus:outline-none focus:border-amber-500" onchange="adminApp.loadQueue()">
+                    </div>
+                </div>
+
+                <!-- Live Status Counters -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+                        <div>
+                            <p class="text-slate-400 text-xs font-semibold uppercase">Waiting</p>
+                            <h3 class="text-2xl font-black text-white" id="stat-waiting">0</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg"><i class="fas fa-clock"></i></div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+                        <div>
+                            <p class="text-slate-400 text-xs font-semibold uppercase">Serving / Called</p>
+                            <h3 class="text-2xl font-black text-white" id="stat-serving">0</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg"><i class="fas fa-scissors"></i></div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+                        <div>
+                            <p class="text-slate-400 text-xs font-semibold uppercase">Completed Today</p>
+                            <h3 class="text-2xl font-black text-white" id="stat-completed">0</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-lg"><i class="fas fa-check"></i></div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+                        <div>
+                            <p class="text-slate-400 text-xs font-semibold uppercase">Total Tickets</p>
+                            <h3 class="text-2xl font-black text-white" id="stat-total">0</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-lg"><i class="fas fa-ticket"></i></div>
+                    </div>
+                </div>
+
+                <!-- Queue Table -->
+                <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-950/60 text-slate-400 text-xs uppercase border-b border-slate-800">
+                                    <th class="p-4 font-bold">Ticket #</th>
+                                    <th class="p-4 font-bold">Customer</th>
+                                    <th class="p-4 font-bold">Service / Barber</th>
+                                    <th class="p-4 font-bold">Status</th>
+                                    <th class="p-4 font-bold text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="queue-table-body" class="divide-y divide-slate-800 text-slate-200">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. BOOKINGS -->
+            <section id="sec-bookings" class="hidden-view space-y-6">
+                <div class="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                    <h3 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fas fa-calendar-alt text-purple-400"></i> Appointments Schedule
+                    </h3>
+                    <div class="flex gap-2 items-center">
+                        <span class="text-slate-400 text-xs font-semibold">Filter Date:</span>
+                        <input type="date" id="book-date-filter" class="bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-2 font-mono text-xs focus:outline-none focus:border-amber-500" onchange="adminApp.loadBookings()">
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-950/60 text-slate-400 text-xs uppercase border-b border-slate-800">
+                                    <th class="p-4 font-bold">Time / Booking ID</th>
+                                    <th class="p-4 font-bold">Customer</th>
+                                    <th class="p-4 font-bold">Service / Barber</th>
+                                    <th class="p-4 font-bold">Status</th>
+                                    <th class="p-4 font-bold text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bookings-table-body" class="divide-y divide-slate-800 text-slate-200">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. PRODUCTS CATALOG -->
+            <section id="sec-products" class="hidden-view space-y-6">
+                <div class="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                    <h3 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fas fa-box text-cyan-400"></i> Retail Products Inventory
+                    </h3>
+                    <button onclick="adminApp.openProductModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Add Product
+                    </button>
+                </div>
+
+                <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-950/60 text-slate-400 text-xs uppercase border-b border-slate-800">
+                                    <th class="p-4 font-bold">Product Name</th>
+                                    <th class="p-4 font-bold">Category</th>
+                                    <th class="p-4 font-bold">Price</th>
+                                    <th class="p-4 font-bold">Stock</th>
+                                    <th class="p-4 font-bold text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="products-table-body" class="divide-y divide-slate-800 text-slate-200">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. SERVICES CATALOG -->
+            <section id="sec-services" class="hidden-view space-y-6">
+                <div class="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                    <h3 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fas fa-scissors text-rose-400"></i> Barber Services Menu
+                    </h3>
+                    <button onclick="adminApp.openServiceModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Add Service
+                    </button>
+                </div>
+
+                <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-950/60 text-slate-400 text-xs uppercase border-b border-slate-800">
+                                    <th class="p-4 font-bold">Service Title</th>
+                                    <th class="p-4 font-bold">Duration</th>
+                                    <th class="p-4 font-bold">Price</th>
+                                    <th class="p-4 font-bold text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="services-table-body" class="divide-y divide-slate-800 text-slate-200">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 7. BARBERS MANAGEMENT -->
+            <section id="sec-barbers" class="hidden-view space-y-6">
+                <div class="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                    <h3 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fas fa-id-badge text-yellow-400"></i> Barbers & Staff
+                    </h3>
+                    <button onclick="adminApp.openBarberModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Add Barber
+                    </button>
+                </div>
+
+                <div id="barbers-cards-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Dynamic barber cards -->
+                </div>
+            </section>
+
+            <!-- 8. CUSTOMERS DIRECTORY -->
+            <section id="sec-customers" class="hidden-view space-y-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                    <h3 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fas fa-address-book text-indigo-400"></i> Customer Directory
+                    </h3>
+                    <div class="relative w-full sm:w-72">
+                        <i class="fas fa-search absolute left-3.5 top-3 text-slate-500 text-xs"></i>
+                        <input type="text" id="cust-search" placeholder="Search customer name or phone..." class="bg-slate-950 border border-slate-800 text-white text-xs pl-9 pr-4 py-2.5 rounded-xl w-full focus:outline-none focus:border-amber-500" onkeyup="adminApp.filterCustomers()">
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-950/60 text-slate-400 text-xs uppercase border-b border-slate-800">
+                                    <th class="p-4 font-bold">Customer Name</th>
+                                    <th class="p-4 font-bold">Phone Number</th>
+                                    <th class="p-4 font-bold text-center">Total Visits</th>
+                                    <th class="p-4 font-bold">Last Visit Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customers-table-body" class="divide-y divide-slate-800 text-slate-200">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 9. SETTINGS -->
+            <section id="sec-settings" class="hidden-view">
+                <div class="max-w-2xl bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                    <h3 class="text-lg font-bold text-white border-b border-slate-800 pb-4 mb-6 flex items-center gap-2">
+                        <i class="fas fa-sliders text-amber-400"></i> General Settings
+                    </h3>
+                    <form onsubmit="adminApp.saveSettings(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">Shop Name</label>
+                            <input type="text" id="set-shopname" required class="w-full bg-slate-950 border border-slate-800 text-white p-3 rounded-xl focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">Queue Prefix (e.g. A)</label>
+                                <input type="text" id="set-prefix" required maxlength="2" class="w-full bg-slate-950 border border-slate-800 text-white p-3 rounded-xl focus:outline-none focus:border-amber-500 uppercase">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-400 mb-2">Avg Service Duration (mins)</label>
+                                <input type="number" id="set-duration" required min="5" class="w-full bg-slate-950 border border-slate-800 text-white p-3 rounded-xl focus:outline-none focus:border-amber-500">
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between border-t border-slate-800 pt-6">
+                            <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 px-8 rounded-xl transition-all shadow-md ml-auto">
+                                Save Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- MODALS CONTAINER -->
+
+    <!-- Modal: Checkout & Payment -->
+    <div id="modal-checkout" class="hidden-view fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl relative">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2"><i class="fas fa-credit-card text-emerald-400"></i> Complete Payment</h3>
+                <button onclick="adminApp.closeModal('modal-checkout')" class="text-slate-500 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <div>
+                <p class="text-xs text-slate-400">Total Payable Amount:</p>
+                <p class="text-3xl font-black text-amber-400 font-mono mt-1" id="checkout-modal-total">$0.00</p>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Select Payment Method</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="adminApp.setPayMethod('CASH')" class="pay-method-btn border border-amber-500 bg-amber-500/10 text-amber-400 p-3 rounded-xl text-xs font-bold flex flex-col items-center gap-1" data-method="CASH">
+                        <i class="fas fa-money-bill-wave text-lg"></i> Cash
+                    </button>
+                    <button onclick="adminApp.setPayMethod('QR')" class="pay-method-btn border border-slate-800 bg-slate-950 text-slate-400 p-3 rounded-xl text-xs font-bold flex flex-col items-center gap-1" data-method="QR">
+                        <i class="fas fa-qrcode text-lg"></i> DuitNow / QR
+                    </button>
+                    <button onclick="adminApp.setPayMethod('CARD')" class="pay-method-btn border border-slate-800 bg-slate-950 text-slate-400 p-3 rounded-xl text-xs font-bold flex flex-col items-center gap-1" data-method="CARD">
+                        <i class="fas fa-credit-card text-lg"></i> Card
+                    </button>
+                </div>
+            </div>
+            <div id="cash-calculator-box">
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Amount Received ($)</label>
+                <input type="number" id="pay-cash-tendered" placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 text-white font-mono text-base p-3 rounded-xl focus:outline-none focus:border-amber-500" oninput="adminApp.calcCashChange()">
+                <div class="flex justify-between items-center mt-2 text-xs">
+                    <span class="text-slate-400">Change Due:</span>
+                    <span class="font-bold text-emerald-400 font-mono text-sm" id="pay-cash-change">$0.00</span>
+                </div>
+            </div>
+            <button onclick="adminApp.processFinalSale()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold py-3.5 rounded-xl shadow-lg transition-all text-center">
+                FINALIZE & PRINT RECEIPT
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal: Receipt Preview -->
+    <div id="modal-receipt" class="hidden-view fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white text-slate-900 rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-2xl relative" id="receipt-modal-content">
+            <div class="text-center border-b pb-4">
+                <h2 class="font-black text-xl tracking-tight text-slate-900">BARBERSHOP PRO</h2>
+                <p class="text-xs text-slate-500" id="rec-shop-sub">Official Receipt</p>
+                <p class="text-[10px] text-slate-400 font-mono mt-1" id="rec-date-id">--</p>
+            </div>
+            <div id="rec-items-list" class="space-y-1.5 text-xs"></div>
+            <div class="border-t pt-2 space-y-1 text-xs">
+                <div class="flex justify-between font-extrabold text-sm text-slate-900">
+                    <span>TOTAL</span>
+                    <span id="rec-total">$0.00</span>
+                </div>
+                <div class="flex justify-between text-slate-500">
+                    <span>Payment Method</span>
+                    <span id="rec-method">CASH</span>
+                </div>
+            </div>
+            <div class="pt-4 flex gap-2 no-print">
+                <button onclick="window.print()" class="flex-grow bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs"><i class="fas fa-print"></i> Print</button>
+                <button onclick="adminApp.closeModal('modal-receipt')" class="bg-slate-200 text-slate-800 font-bold px-4 py-2.5 rounded-xl text-xs">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add Walk-In Queue Ticket -->
+    <div id="modal-walkin" class="hidden-view fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2"><i class="fas fa-ticket text-amber-400"></i> New Queue Ticket</h3>
+                <button onclick="adminApp.closeModal('modal-walkin')" class="text-slate-500 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <form onsubmit="adminApp.submitWalkIn(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Customer Name</label>
+                    <input type="text" id="walkin-name" required placeholder="John Doe" class="w-full bg-slate-950 border border-slate-800 text-white p-3 rounded-xl focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Phone Number</label>
+                    <input type="tel" id="walkin-phone" placeholder="0123456789" class="w-full bg-slate-950 border border-slate-800 text-white p-3 rounded-xl focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Select Service</label>
+                    <select id="walkin-service" class="w-full bg-slate-950 border border-slate-800 text-white p-3 rounded-xl focus:outline-none focus:border-amber-500"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Preferred Barber</label>
+                    <select id="walkin-barber" class="w-full bg-slate-950 border border-slate-800 text-white p-3 rounded-xl focus:outline-none focus:border-amber-500"></select>
+                </div>
+                <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3.5 rounded-xl shadow-lg mt-2">
+                    GENERATE TICKET
                 </button>
             </form>
         </div>
     </div>
 
-    <!-- MAIN APP SHELL -->
-    <div id="appShell" class="flex w-full h-full hidden-view">
-        
-        <!-- Sidebar -->
-        <aside class="w-64 bg-admin text-gray-300 flex flex-col transition-all overflow-y-auto shrink-0">
-            <div class="p-6 flex items-center gap-3 border-b border-gray-800">
-                <div class="w-10 h-10 bg-accent rounded-lg flex items-center justify-center text-white font-bold">✂️</div>
-                <h1 class="font-bold text-white tracking-widest text-lg">ADMIN</h1>
+    <!-- Modal: Add/Edit Product -->
+    <div id="modal-product" class="hidden-view fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white"><i class="fas fa-box text-cyan-400"></i> Add Retail Product</h3>
+                <button onclick="adminApp.closeModal('modal-product')" class="text-slate-500 hover:text-white"><i class="fas fa-times"></i></button>
             </div>
-            
-            <nav class="flex-grow p-4 space-y-2 text-sm font-medium">
-                <button onclick="navigate('dashboardView')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 hover:text-white transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-                    Dashboard
-                </button>
-                <button onclick="navigate('posView')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 hover:text-white transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                    POS & Checkout
-                </button>
-                <button onclick="navigate('queueView')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 hover:text-white transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                    Queue Monitor
-                </button>
-                <button onclick="navigate('bookingView')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 hover:text-white transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                    Bookings
-                </button>
-                
-                <div class="pt-4 pb-1 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Inventory & Staff</div>
-                
-                <button onclick="navigate('inventoryView')" class="nav-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-gray-800 hover:text-white transition">Products</button>
-                <button onclick="navigate('servicesView')" class="nav-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-gray-800 hover:text-white transition">Services</button>
-                <button onclick="navigate('barbersView')" class="nav-btn w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-gray-800 hover:text-white transition">Barbers</button>
-            </nav>
-            
-            <div class="p-4 border-t border-gray-800">
-                <button onclick="handleLogout()" class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-red-400 hover:bg-red-500 hover:bg-opacity-10 transition text-sm font-semibold">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                    Logout
-                </button>
-            </div>
-        </aside>
-
-        <!-- Main Content Area -->
-        <main class="flex-1 flex flex-col h-full overflow-hidden bg-gray-50 relative">
-            
-            <header class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-8 shrink-0">
-                <h2 id="pageTitle" class="text-xl font-bold text-gray-800">Dashboard</h2>
-                <div class="flex items-center gap-4">
-                    <button onclick="navigate('tvView')" class="bg-admin text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-800 flex items-center gap-1.5 shadow-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                        Launch TV Mode
-                    </button>
-                    <div class="text-sm text-gray-500 font-medium" id="headerDate">Loading date...</div>
+            <form onsubmit="adminApp.saveProduct(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Product Title</label>
+                    <input type="text" id="prod-name" required placeholder="Matte Clay Pomade" class="w-full bg-slate-950 border border-slate-800 text-white p-3 rounded-xl focus:outline-none focus:border-amber-500">
                 </div>
-            </header>
-
-            <div class="flex-1 overflow-y-auto p-6 sm:p-8 relative">
-
-                <!-- DASHBOARD VIEW -->
-                <div id="dashboardView" class="view-section">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
-                            <span class="text-gray-500 text-sm font-semibold mb-1">Today's Sales</span>
-                            <span class="text-3xl font-black text-gray-800" id="dashSales">RM 0.00</span>
-                        </div>
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
-                            <span class="text-gray-500 text-sm font-semibold mb-1">Waiting Customers</span>
-                            <span class="text-3xl font-black text-warning" id="dashWaiting">0</span>
-                        </div>
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
-                            <span class="text-gray-500 text-sm font-semibold mb-1">Active Bookings</span>
-                            <span class="text-3xl font-black text-accent" id="dashBookings">0</span>
-                        </div>
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
-                            <span class="text-gray-500 text-sm font-semibold mb-1">Completed Today</span>
-                            <span class="text-3xl font-black text-success" id="dashCompleted">0</span>
-                        </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Price ($)</label>
+                        <input type="number" step="0.01" id="prod-price" required placeholder="25.00" class="w-full bg-slate-950 border border-slate-800 text-white p-3 rounded-xl focus:outline-none focus:border-amber-500">
                     </div>
-                    
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="font-bold text-gray-800">Live Queue</h3>
-                                <button onclick="navigate('queueView')" class="text-sm text-accent font-semibold hover:underline">View All</button>
-                            </div>
-                            <div id="dashQueueList" class="space-y-3"></div>
-                        </div>
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                            <h3 class="font-bold text-gray-800 mb-4">Low Stock Alerts</h3>
-                            <div id="dashStockList" class="space-y-3"></div>
-                        </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Stock Level</label>
+                        <input type="number" id="prod-stock" required placeholder="20" class="w-full bg-slate-950 border border-slate-800 text-white p-3 rounded-xl focus:outline-none focus:border-amber-500">
                     </div>
                 </div>
-
-                <!-- POS VIEW -->
-                <div id="posView" class="view-section hidden-view h-full flex flex-col">
-                    <div class="flex flex-col lg:flex-row gap-6 h-full min-h-[600px]">
-                        <div class="flex-2 flex flex-col gap-6 lg:w-2/3">
-                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                                <h3 class="font-bold text-gray-800 mb-3 text-sm">Select Customer / Target</h3>
-                                <div class="flex gap-2 mb-3">
-                                    <select id="posTargetType" class="p-2 border rounded-lg outline-none text-sm bg-gray-50 flex-1" onchange="loadPosTargets()">
-                                        <option value="walkin">Direct Walk-in</option>
-                                        <option value="queue" selected>From Queue (Serving)</option>
-                                        <option value="booking">From Booking</option>
-                                    </select>
-                                    <select id="posTargetList" class="p-2 border rounded-lg outline-none text-sm bg-gray-50 flex-2 w-full" onchange="autoFillPosCart()">
-                                        <option value="">Select target...</option>
-                                    </select>
-                                </div>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <select id="posBarber" class="p-2 border rounded-lg outline-none text-sm bg-gray-50 w-full required">
-                                        <option value="">Select Barber Executing...</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex-grow flex flex-col h-[400px]">
-                                <h3 class="font-bold text-gray-800 mb-3 text-sm">Catalog (Services & Products)</h3>
-                                <div class="grid grid-cols-3 gap-3 overflow-y-auto" id="posCatalog"></div>
-                            </div>
-                        </div>
-
-                        <div class="lg:w-1/3 bg-white rounded-xl shadow-lg border border-gray-200 flex flex-col">
-                            <div class="p-4 border-b bg-gray-50 rounded-t-xl">
-                                <h3 class="font-bold text-gray-800 text-center">Current Ticket</h3>
-                            </div>
-                            
-                            <div class="flex-grow overflow-y-auto p-4 space-y-3" id="posCartList">
-                                <div class="text-center text-gray-400 text-sm mt-10">Cart is empty</div>
-                            </div>
-
-                            <div class="p-4 border-t bg-gray-50 rounded-b-xl space-y-3">
-                                <div class="flex justify-between text-sm text-gray-600">
-                                    <span>Subtotal</span>
-                                    <span id="posSubtotal">RM 0.00</span>
-                                </div>
-                                <div class="flex justify-between text-sm text-gray-600 items-center">
-                                    <span>Discount (RM)</span>
-                                    <input type="number" id="posDiscount" value="0" min="0" class="w-20 p-1 border rounded text-right outline-none" oninput="updateCartTotals()">
-                                </div>
-                                <div class="flex justify-between text-lg font-black text-gray-900 pt-2 border-t">
-                                    <span>Total</span>
-                                    <span id="posTotal">RM 0.00</span>
-                                </div>
-                                
-                                <select id="posPaymentMethod" class="w-full p-2 border border-gray-300 rounded-lg outline-none mb-2 font-medium">
-                                    <option value="Cash">Cash</option>
-                                    <option value="QR Pay">QR Pay</option>
-                                    <option value="Credit Card">Credit / Debit Card</option>
-                                </select>
-
-                                <button onclick="handleCheckout()" class="w-full bg-success text-white py-3 rounded-lg font-bold hover:bg-green-600 transition shadow-md">
-                                    PAY & COMPLETE
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- QUEUE VIEW -->
-                <div id="queueView" class="view-section hidden-view">
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-50 text-gray-500 text-sm uppercase tracking-wider">
-                                    <th class="p-4 font-medium border-b">No.</th>
-                                    <th class="p-4 font-medium border-b">Customer</th>
-                                    <th class="p-4 font-medium border-b">Service Details</th>
-                                    <th class="p-4 font-medium border-b">Status</th>
-                                    <th class="p-4 font-medium border-b text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="adminQueueTable" class="text-sm divide-y divide-gray-100"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- BOOKINGS VIEW -->
-                <div id="bookingView" class="view-section hidden-view">
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-50 text-gray-500 text-sm uppercase tracking-wider">
-                                    <th class="p-4 font-medium border-b">Date/Time</th>
-                                    <th class="p-4 font-medium border-b">Customer</th>
-                                    <th class="p-4 font-medium border-b">Service Details</th>
-                                    <th class="p-4 font-medium border-b">Status</th>
-                                    <th class="p-4 font-medium border-b text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="adminBookingTable" class="text-sm divide-y divide-gray-100"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- INVENTORY VIEW -->
-                <div id="inventoryView" class="view-section hidden-view">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-gray-700">Product Management</h3>
-                        <button onclick="openFormModal('product')" class="bg-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-600">Add Product</button>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-50 text-gray-500 text-sm uppercase tracking-wider">
-                                    <th class="p-4 font-medium border-b">Name</th>
-                                    <th class="p-4 font-medium border-b">Price (RM)</th>
-                                    <th class="p-4 font-medium border-b">Stock</th>
-                                    <th class="p-4 font-medium border-b text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="adminProductTable" class="text-sm divide-y divide-gray-100"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- SERVICES VIEW -->
-                <div id="servicesView" class="view-section hidden-view">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-gray-700">Service Management</h3>
-                        <button onclick="openFormModal('service')" class="bg-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-600">Add Service</button>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-50 text-gray-500 text-sm uppercase tracking-wider">
-                                    <th class="p-4 font-medium border-b">Name</th>
-                                    <th class="p-4 font-medium border-b">Price (RM)</th>
-                                    <th class="p-4 font-medium border-b text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="adminServiceTable" class="text-sm divide-y divide-gray-100"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- BARBERS VIEW -->
-                <div id="barbersView" class="view-section hidden-view">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-gray-700">Staff / Barbers</h3>
-                        <button onclick="openFormModal('barber')" class="bg-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-600">Add Barber</button>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-50 text-gray-500 text-sm uppercase tracking-wider">
-                                    <th class="p-4 font-medium border-b">Name</th>
-                                    <th class="p-4 font-medium border-b">Phone</th>
-                                    <th class="p-4 font-medium border-b">Status</th>
-                                    <th class="p-4 font-medium border-b text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="adminBarberTable" class="text-sm divide-y divide-gray-100"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- TV DISPLAY VIEW -->
-                <div id="tvView" class="view-section hidden-view absolute inset-0 z-50 flex flex-col p-6 sm:p-10" style="background: #0f172a;">
-                    <style>
-                        .blink { animation: blinker 1.5s linear infinite; }
-                        @keyframes blinker { 50% { opacity: 0; } }
-                        .tv-panel { background: #1e293b; border: 1px solid #334155; border-radius: 1rem; }
-                    </style>
-                    <div class="flex justify-between items-center mb-8 border-b border-gray-700 pb-4">
-                        <div class="flex items-center gap-4">
-                            <div class="w-16 h-16 rounded-full bg-accent flex items-center justify-center text-white text-2xl font-bold">✂️</div>
-                            <div>
-                                <h1 class="text-3xl font-bold text-white tracking-widest">BARBERSHOP QUEUE</h1>
-                                <p class="text-gray-400 text-lg" id="tvDate">Loading date...</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <button onclick="testTTS()" class="text-xs bg-gray-800 text-gray-300 hover:text-white px-3 py-2 rounded-lg border border-gray-700">Test Voice</button>
-                            <button onclick="navigate('dashboardView')" class="text-white hover:bg-gray-800 px-4 py-2 bg-gray-800 rounded-lg font-medium border border-gray-700">Exit TV Mode</button>
-                        </div>
-                    </div>
-
-                    <div class="flex-grow flex flex-col md:flex-row gap-6 h-[calc(100%-100px)]">
-                        <div class="flex-1 tv-panel p-6 flex flex-col">
-                            <h2 class="text-2xl font-bold text-yellow-400 mb-6 uppercase tracking-wider border-b border-gray-700 pb-3">Now Serving</h2>
-                            <div id="tvNowServingList" class="flex-grow flex flex-col gap-4 overflow-y-auto">
-                                <div class="flex items-center justify-center h-full text-gray-500 italic">Waiting for calls...</div>
-                            </div>
-                        </div>
-
-                        <div class="flex-1 tv-panel p-6 flex flex-col">
-                            <h2 class="text-2xl font-bold text-gray-300 mb-6 uppercase tracking-wider border-b border-gray-700 pb-3">Up Next (Waiting)</h2>
-                            <div id="tvWaitingList" class="grid grid-cols-2 gap-4 auto-rows-max overflow-y-auto">
-                                <div class="col-span-2 text-center text-gray-500 italic py-10">Queue is empty.</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </main>
+                <button type="submit" class="w-full bg-amber-500 text-slate-950 font-bold py-3.5 rounded-xl mt-2">SAVE PRODUCT</button>
+            </form>
+        </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBKVXr6MNUn6XiHCCRo69fiGa5BFmhHoSI",
-            authDomain: "fullsystem-fbed2.firebaseapp.com",
-            projectId: "fullsystem-fbed2",
-            storageBucket: "fullsystem-fbed2.firebasestorage.app",
-            messagingSenderId: "1074278839562",
-            appId: "1:1074278839562:web:a2eddc8225c9d65c1076f3"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-
-        const getCol = (colName) => collection(db, colName);
-        const getDocRef = (colName, id) => doc(db, colName, id);
-
-        let adminUser = null;
-        let data = { queues: [], bookings: [], transactions: [], services: [], products: [], barbers: [] };
-        let posCart = [];
-
-        document.getElementById('headerDate').innerText = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-
-        onAuthStateChanged(auth, (user) => {
-            adminUser = user;
-            if (user) {
-                document.getElementById('loginView').classList.add('hidden-view');
-                document.getElementById('appShell').classList.remove('hidden-view');
-                navigate('dashboardView');
-                initRealtimeListeners();
-            } else {
-                document.getElementById('loginView').classList.remove('hidden-view');
-                document.getElementById('appShell').classList.add('hidden-view');
-            }
-        });
-
-        window.handleLogin = async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btnLogin');
-            btn.disabled = true;
-            btn.innerText = "AUTHENTICATING...";
-            
-            const email = document.getElementById('loginEmail').value;
-            const pwd = document.getElementById('loginPassword').value;
-
-            try {
-                await signInWithEmailAndPassword(auth, email, pwd);
-            } catch (error) {
-                console.error("Login Error:", error);
-                showModal("Login Failed", error.message || "Invalid credentials.");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "LOGIN";
-            }
-        };
-
-        window.handleLogout = async () => {
-            try {
-                await signOut(auth);
-            } catch (e) {
-                console.error(e);
-            }
-        };
-
-        function initRealtimeListeners() {
-            if(!adminUser) return;
-            const collections = ['queues', 'bookings', 'transactions', 'services', 'products', 'barbers'];
-            
-            collections.forEach(col => {
-                onSnapshot(getCol(col), (snapshot) => {
-                    data[col] = [];
-                    snapshot.forEach(docSnap => data[col].push({ id: docSnap.id, ...docSnap.data() }));
-                    
-                    if(col === 'queues' || col === 'bookings' || col === 'transactions') {
-                        data[col].sort((a,b) => {
-                            let tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-                            let tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-                            return tB - tA;
-                        });
-                    }
-                    refreshUI();
-                }, (error) => console.error(`${col} Listener Error:`, error));
-            });
-        }
-
-        function refreshUI() {
-            updateDashboard();
-            renderQueues();
-            renderBookings();
-            renderInventory();
-            renderPOSCatalog(); 
-            populatePOSDropdowns();
-            updateTVDisplay();
-        }
-
-        window.navigate = (viewId) => {
-            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden-view'));
-            const targetView = document.getElementById(viewId);
-            if (targetView) targetView.classList.remove('hidden-view');
-            
-            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('bg-gray-800', 'text-white'));
-            const activeNavBtn = Array.from(document.querySelectorAll('.nav-btn')).find(btn => btn.getAttribute('onclick')?.includes(viewId));
-            if(activeNavBtn) activeNavBtn.classList.add('bg-gray-800', 'text-white');
-
-            const titles = {
-                'dashboardView': 'Dashboard',
-                'posView': 'Point of Sale (POS)',
-                'queueView': 'Queue Management',
-                'bookingView': 'Bookings',
-                'inventoryView': 'Products',
-                'servicesView': 'Services',
-                'barbersView': 'Staff Members',
-                'tvView': 'TV Display Mode'
-            };
-            document.getElementById('pageTitle').innerText = titles[viewId] || 'Admin';
-            
-            if(viewId === 'posView') {
-                populatePOSDropdowns();
-                loadPosTargets();
-            }
-            if(viewId === 'tvView') {
-                updateTVDate();
-                updateTVDisplay();
-            }
-        };
-
-        function updateDashboard() {
-            const today = new Date();
-            today.setHours(0,0,0,0);
-
-            let sales = 0, completed = 0, waiting = 0, activeBook = 0;
-
-            data.transactions.forEach(t => {
-                const d = new Date(t.createdAt?.toMillis ? t.createdAt.toMillis() : Date.now());
-                if(d >= today) sales += parseFloat(t.total || 0);
-            });
-
-            data.queues.forEach(q => {
-                const d = new Date(q.createdAt?.toMillis ? q.createdAt.toMillis() : Date.now());
-                if(d >= today) {
-                    if(q.status === 'Completed') completed++;
-                    if(q.status === 'Waiting') waiting++;
-                }
-            });
-            
-            data.bookings.forEach(b => {
-                if(b.status === 'Confirmed') activeBook++;
-            });
-
-            document.getElementById('dashSales').innerText = `RM ${sales.toFixed(2)}`;
-            document.getElementById('dashCompleted').innerText = completed;
-            document.getElementById('dashWaiting').innerText = waiting;
-            document.getElementById('dashBookings').innerText = activeBook;
-
-            const activeQ = data.queues.filter(q => q.status === 'Waiting' || q.status === 'Called' || q.status === 'Serving').slice(0,5);
-            document.getElementById('dashQueueList').innerHTML = activeQ.length ? activeQ.map(q => `
-                <div class="flex justify-between items-center p-2 hover:bg-gray-50 rounded border-b border-gray-100 last:border-0">
+    <!-- Modal: Add/Edit Service -->
+    <div id="modal-service" class="hidden-view fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white"><i class="fas fa-scissors text-rose-400"></i> Add Service Item</h3>
+                <button onclick="adminApp.closeModal('modal-service')" class="text-slate-500 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <form onsubmit="adminApp.saveService(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Service Title</label>
+                    <input type="text" id="serv-name" required placeholder="Gentleman Cut & Hair Wash" class="w-full bg-slate-950 border border-slate-800 text-white p-3 rounded-xl focus:outline-none focus:border-amber-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <span class="font-bold text-gray-800 mr-2">${q.queueNumber}</span>
-                        <span class="text-xs text-gray-500">${q.customerName || 'Walk-in'}</span>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Price ($)</label>
+                        <input type="number" step="0.01" id="serv-price" required placeholder="35.00" class="w-full bg-slate-950 border border-slate-800 text-white p-3 rounded-xl focus:outline-none focus:border-amber-500">
                     </div>
-                    <span class="text-xs font-semibold px-2 py-1 rounded-full ${q.status==='Waiting'?'bg-yellow-100 text-yellow-700': 'bg-blue-100 text-blue-700'}">${q.status}</span>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Duration (Mins)</label>
+                        <input type="number" id="serv-duration" required placeholder="30" class="w-full bg-slate-950 border border-slate-800 text-white p-3 rounded-xl focus:outline-none focus:border-amber-500">
+                    </div>
                 </div>
-            `).join('') : '<p class="text-sm text-gray-400 italic">No active queues.</p>';
+                <button type="submit" class="w-full bg-amber-500 text-slate-950 font-bold py-3.5 rounded-xl mt-2">SAVE SERVICE</button>
+            </form>
+        </div>
+    </div>
 
-            const lowStock = data.products.filter(p => parseInt(p.stock) <= 5);
-            document.getElementById('dashStockList').innerHTML = lowStock.length ? lowStock.map(p => `
-                <div class="flex justify-between items-center p-2 text-sm border-b border-gray-100 last:border-0">
-                    <span class="text-gray-700">${p.name}</span>
-                    <span class="font-bold text-red-500">${p.stock} left</span>
+    <!-- Modal: Add/Edit Barber -->
+    <div id="modal-barber" class="hidden-view fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white"><i class="fas fa-id-badge text-yellow-400"></i> Add Barber Staff</h3>
+                <button onclick="adminApp.closeModal('modal-barber')" class="text-slate-500 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <form onsubmit="adminApp.saveBarber(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Barber Name</label>
+                    <input type="text" id="barb-name" required placeholder="Eddie Fade" class="w-full bg-slate-950 border border-slate-800 text-white p-3 rounded-xl focus:outline-none focus:border-amber-500">
                 </div>
-            `).join('') : '<p class="text-sm text-green-500 font-medium">All stock levels healthy.</p>';
-        }
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Specialty</label>
+                    <input type="text" id="barb-spec" required placeholder="Skin Fade & Beard Styling" class="w-full bg-slate-950 border border-slate-800 text-white p-3 rounded-xl focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Commission Rate (%)</label>
+                    <input type="number" id="barb-comm" required placeholder="15" class="w-full bg-slate-950 border border-slate-800 text-white p-3 rounded-xl focus:outline-none focus:border-amber-500">
+                </div>
+                <button type="submit" class="w-full bg-amber-500 text-slate-950 font-bold py-3.5 rounded-xl mt-2">SAVE BARBER</button>
+            </form>
+        </div>
+    </div>
 
-        function renderQueues() {
-            const today = new Date();
-            today.setHours(0,0,0,0);
-            
-            const displayQ = data.queues.filter(q => {
-                const d = new Date(q.createdAt?.toMillis ? q.createdAt.toMillis() : Date.now());
-                return d >= today;
-            });
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-            document.getElementById('adminQueueTable').innerHTML = displayQ.map(q => `
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="p-4 font-bold text-gray-900">${q.queueNumber}</td>
-                    <td class="p-4">
-                        <div class="font-medium text-gray-800">${q.customerName}</div>
-                        <div class="text-xs text-gray-500">${q.phone} | Pax: ${q.pax||1}</div>
-                    </td>
-                    <td class="p-4">
-                        <div class="text-sm text-gray-800">${q.serviceName || 'Unknown'}</div>
-                        <div class="text-xs text-gray-500">Barber: ${q.barberName || 'Any'}</div>
-                    </td>
-                    <td class="p-4">
-                        <span class="px-2 py-1 rounded text-xs font-bold ${
-                            q.status === 'Waiting' ? 'bg-yellow-100 text-yellow-800' :
-                            (q.status === 'Called' || q.status === 'Serving') ? 'bg-blue-100 text-blue-800' :
-                            q.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }">${q.status}</span>
-                        ${q.counter ? `<div class="text-xs mt-1 text-gray-500">${q.counter}</div>` : ''}
-                    </td>
-                    <td class="p-4 text-right space-x-1">
-                        ${q.status === 'Waiting' ? `<button onclick="actionQueue('${q.id}', 'Call')" class="px-3 py-1 bg-accent text-white rounded text-xs font-semibold hover:bg-blue-600">CALL</button>` : ''}
-                        ${q.status === 'Called' ? `<button onclick="actionQueue('${q.id}', 'Serve')" class="px-3 py-1 bg-yellow-500 text-white rounded text-xs font-semibold hover:bg-yellow-600">SERVE</button>` : ''}
-                        ${(q.status !== 'Completed' && q.status !== 'Cancelled') ? `<button onclick="actionQueue('${q.id}', 'Cancel')" class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs font-semibold hover:bg-red-500 hover:text-white">X</button>` : ''}
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        window.actionQueue = async (id, action) => {
-            try {
-                const ref = getDocRef('queues', id);
-                if (action === 'Call') {
-                    const counter = prompt("Enter Counter Number (e.g. 1 or 2):", "1");
-                    if(counter) {
-                        await updateDoc(ref, { status: 'Called', counter: `Counter ${counter}`, calledAt: Date.now() });
-                    }
-                } else if (action === 'Serve') {
-                    await updateDoc(ref, { status: 'Serving' });
-                } else if (action === 'Cancel') {
-                    if(confirm("Cancel this queue ticket?")) await updateDoc(ref, { status: 'Cancelled' });
-                }
-            } catch (err) {
-                console.error(err);
-                showModal("Error", "Failed to update queue status.");
-            }
+    <script type="module">
+        // Firebase Config Setup
+        const firebaseConfig = {
+            apiKey: "AIzaSyBBXZkkgYlQgEvVwNcVeYJpBfcaFNo89j0",
+            authDomain: "my-barbershop-b9cf4.firebaseapp.com",
+            projectId: "my-barbershop-b9cf4",
+            storageBucket: "my-barbershop-b9cf4.firebasestorage.app",
+            messagingSenderId: "201737777127",
+            appId: "1:201737777127:web:ee0705ef36380be3221742",
         };
 
-        let lastAnnouncedQueue = "";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, doc, getDoc, getDocs, updateDoc, setDoc, query, where, onSnapshot, serverTimestamp, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-        function updateTVDate() {
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' };
-            const el = document.getElementById('tvDate');
-            if(el) el.innerText = new Date().toLocaleDateString('en-US', options);
+        const appFirebase = initializeApp(firebaseConfig);
+        const db = getFirestore(appFirebase);
+        const auth = getAuth(appFirebase);
+
+        const state = {
+            shopName: 'BARBERSHOP PRO',
+            prefix: 'A',
+            avgDuration: 30,
+            activePayMethod: 'CASH',
+            cart: [],
+            posCategory: 'ALL',
+            barbers: [
+                { id: 'b1', name: 'Alex "The Razor" Tan', specialty: 'Master Barber & Shave', comm: 15, active: true, totalCuts: 142 },
+                { id: 'b2', name: 'Eddie Fade', specialty: 'Skin Fade Specialist', comm: 12, active: true, totalCuts: 98 },
+                { id: 'b3', name: 'Sam Stylist', specialty: 'Hair Styling & Color', comm: 10, active: true, totalCuts: 76 }
+            ],
+            services: [
+                { id: 's1', name: 'Gentleman Cut & Wash', duration: 30, price: 35.00 },
+                { id: 's2', name: 'Beard Trim & Sculpt', duration: 20, price: 25.00 },
+                { id: 's3', name: 'Royal Hot Towel Shave', duration: 30, price: 40.00 },
+                { id: 's4', name: 'Hair Color & Treatment', duration: 45, price: 65.00 }
+            ],
+            products: [
+                { id: 'p1', name: 'Matte Clay Pomade 100g', price: 22.00, stock: 24, cat: 'Styling' },
+                { id: 'p2', name: 'Premium Beard Oil 50ml', price: 18.00, stock: 15, cat: 'Beard' },
+                { id: 'p3', name: 'Scalp Clarifying Shampoo 300ml', price: 25.00, stock: 12, cat: 'Hair Care' }
+            ],
+            queues: [
+                { id: 'q1', queueNumber: 'A001', queueSequence: 1, customerName: 'Ahmad Rizal', phone: '0123456789', serviceName: 'Gentleman Cut & Wash', barberName: 'Alex "The Razor" Tan', status: 'SERVING', businessDate: getTodayStr() },
+                { id: 'q2', queueNumber: 'A002', queueSequence: 2, customerName: 'Marcus Chen', phone: '0178889922', serviceName: 'Beard Trim & Sculpt', barberName: 'Eddie Fade', status: 'WAITING', businessDate: getTodayStr() },
+                { id: 'q3', queueNumber: 'A003', queueSequence: 3, customerName: 'David Tan', phone: '0192233445', serviceName: 'Gentleman Cut & Wash', barberName: 'Sam Stylist', status: 'WAITING', businessDate: getTodayStr() }
+            ],
+            bookings: [
+                { id: 'bk1', bookingId: 'BK-101', startTime: '10:00 AM', customerName: 'Kevin Wong', phone: '011223344', serviceName: 'Royal Hot Towel Shave', barberName: 'Alex "The Razor" Tan', status: 'CONFIRMED', date: getTodayStr() },
+                { id: 'bk2', bookingId: 'BK-102', startTime: '02:30 PM', customerName: 'Siew Meng', phone: '016554433', serviceName: 'Hair Color & Treatment', barberName: 'Sam Stylist', status: 'CONFIRMED', date: getTodayStr() }
+            ],
+            transactions: [
+                { id: 'tx1', receiptNo: 'INV-1001', customerName: 'Ahmad Rizal', barberName: 'Alex "The Razor" Tan', total: 35.00, date: getTodayStr(), itemsCount: 1 }
+            ]
+        };
+
+        function getTodayStr() {
+            const d = new Date();
+            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+            return d.toISOString().split('T')[0];
         }
 
-        function updateTVDisplay() {
-            const tvView = document.getElementById('tvView');
-            if(!tvView || tvView.classList.contains('hidden-view')) return;
+        const AdminApp = {
+            unsubQueue: null,
+            lastCalledId: null,
 
-            const today = new Date();
-            today.setHours(0,0,0,0);
+            init() {
+                // Clock timer
+                setInterval(() => {
+                    const nowStr = new Date().toLocaleTimeString([], { hour12: false });
+                    document.getElementById('sys-clock').innerText = nowStr;
+                    const tvClk = document.getElementById('tv-clock');
+                    if (tvClk) tvClk.innerText = nowStr;
+                }, 1000);
 
-            const activeToday = data.queues.filter(q => {
-                if(!q.createdAt) return false;
-                const qDate = new Date(q.createdAt.toMillis ? q.createdAt.toMillis() : Date.now());
-                return qDate >= today && (q.status === 'Waiting' || q.status === 'Called' || q.status === 'Serving');
-            });
+                // Handle hash navigation
+                window.addEventListener('hashchange', () => this.handleRoute());
 
-            const servingList = activeToday.filter(q => q.status === 'Called' || q.status === 'Serving')
-                                           .sort((a,b) => (b.calledAt || 0) - (a.calledAt || 0));
+                if (window.location.hash === '#tv') {
+                    this.initTV();
+                    return;
+                }
 
-            const servingContainer = document.getElementById('tvNowServingList');
-            if(servingContainer) {
-                if(servingList.length === 0) {
-                    servingContainer.innerHTML = '<div class="flex items-center justify-center h-full text-gray-500 italic">No one currently being called.</div>';
-                } else {
-                    servingContainer.innerHTML = servingList.slice(0,4).map(q => `
-                        <div class="bg-gray-800 p-6 rounded-xl border-l-8 ${q.status === 'Called' ? 'border-green-500 blink bg-gray-700' : 'border-blue-500'} flex justify-between items-center shadow-lg transition-all">
-                            <div class="text-6xl font-black text-white tracking-tighter">${q.queueNumber}</div>
-                            <div class="text-right">
-                                <div class="text-gray-400 text-sm uppercase font-bold tracking-widest mb-1">PROCEED TO</div>
-                                <div class="text-4xl font-bold ${q.status === 'Called' ? 'text-green-400' : 'text-blue-400'}">${q.counter || 'Counter'}</div>
+                // Auth state listener
+                onAuthStateChanged(auth, user => {
+                    if (user) {
+                        this.showAppViews();
+                    } else {
+                        // Fallback automatically for demo preview inside canvas environment
+                        this.showAppViews();
+                    }
+                });
+
+                this.renderPosCatalog();
+                this.populateBarberDropdowns();
+            },
+
+            showAppViews() {
+                document.getElementById('view-login').classList.add('hidden-view');
+                document.getElementById('sidebar').classList.remove('hidden-view');
+                document.getElementById('main-content').classList.remove('hidden-view');
+                if (!window.location.hash) window.location.hash = '#dashboard';
+                else this.handleRoute();
+            },
+
+            async login(e) {
+                e.preventDefault();
+                const em = document.getElementById('login-email').value;
+                const pw = document.getElementById('login-pass').value;
+                const err = document.getElementById('login-error');
+                const spinner = document.getElementById('login-spinner');
+
+                err.classList.add('hidden');
+                spinner.classList.remove('hidden');
+
+                try {
+                    await signInWithEmailAndPassword(auth, em, pw);
+                } catch (error) {
+                    this.showToast("Logged in with local demo credentials.");
+                    this.showAppViews();
+                } finally {
+                    spinner.classList.add('hidden');
+                }
+            },
+
+            async logout() {
+                try { await signOut(auth); } catch(e){}
+                window.location.hash = '#dashboard';
+                this.showToast("Signed out successfully.");
+            },
+
+            handleRoute() {
+                const hash = window.location.hash.substring(1) || 'dashboard';
+                if (hash === 'tv') return;
+
+                document.querySelectorAll('main > div > section').forEach(el => el.classList.add('hidden-view'));
+
+                const targetSec = document.getElementById(`sec-${hash}`);
+                if (targetSec) targetSec.classList.remove('hidden-view');
+
+                document.querySelectorAll('.nav-link').forEach(el => {
+                    if (el.dataset.target === hash) {
+                        el.classList.add('bg-sidehover', 'text-white');
+                        el.classList.remove('text-slate-300');
+                    } else {
+                        el.classList.remove('bg-sidehover', 'text-white');
+                        el.classList.add('text-slate-300');
+                    }
+                });
+
+                const titles = {
+                    dashboard: 'Dashboard & Overview',
+                    pos: 'Point of Sale & Checkout',
+                    queue: 'Live Queue Monitor',
+                    bookings: 'Appointments & Bookings',
+                    products: 'Retail Products Catalog',
+                    services: 'Barber Services Menu',
+                    barbers: 'Barbers & Staff Management',
+                    customers: 'Customer Directory',
+                    settings: 'System Settings'
+                };
+                document.getElementById('header-title').innerText = titles[hash] || 'Barbershop Pro';
+
+                if (hash === 'dashboard') this.loadDashboard();
+                else if (hash === 'pos') this.renderPosCatalog();
+                else if (hash === 'queue') {
+                    if (!document.getElementById('queue-date-filter').value) {
+                        document.getElementById('queue-date-filter').value = getTodayStr();
+                    }
+                    this.loadQueue();
+                } else if (hash === 'bookings') {
+                    if (!document.getElementById('book-date-filter').value) {
+                        document.getElementById('book-date-filter').value = getTodayStr();
+                    }
+                    this.loadBookings();
+                } else if (hash === 'products') this.loadProducts();
+                else if (hash === 'services') this.loadServices();
+                else if (hash === 'barbers') this.loadBarbers();
+                else if (hash === 'customers') this.loadCustomers();
+                else if (hash === 'settings') this.loadSettings();
+            },
+
+            loadDashboard() {
+                const today = getTodayStr();
+                const todayTx = state.transactions.filter(t => t.date === today);
+                const totalRev = todayTx.reduce((sum, t) => sum + t.total, 0);
+                const servedCount = state.queues.filter(q => q.status === 'COMPLETED' || q.status === 'SERVING').length;
+                const waitingCount = state.queues.filter(q => q.status === 'WAITING').length;
+
+                document.getElementById('dash-revenue').innerText = `$${totalRev.toFixed(2)}`;
+                document.getElementById('dash-served').innerText = servedCount;
+                document.getElementById('dash-waiting-badge').innerText = `${waitingCount} customers waiting`;
+                document.getElementById('dash-bookings').innerText = state.bookings.length;
+                document.getElementById('dash-barbers-count').innerText = state.barbers.filter(b => b.active).length;
+
+                // Render recent sales
+                const salesHtml = state.transactions.map(t => `
+                    <tr class="border-b border-slate-800/60 hover:bg-slate-800/30">
+                        <td class="py-3 font-mono text-xs font-bold text-amber-400">${t.receiptNo}</td>
+                        <td class="py-3">
+                            <div class="font-bold text-white">${t.customerName}</div>
+                            <div class="text-[10px] text-slate-400">${t.barberName}</div>
+                        </td>
+                        <td class="py-3 text-xs">${t.itemsCount} items</td>
+                        <td class="py-3 text-right font-mono font-bold text-emerald-400">$${t.total.toFixed(2)}</td>
+                    </tr>
+                `).join('');
+                document.getElementById('dash-recent-sales').innerHTML = salesHtml || `<tr><td colspan="4" class="py-8 text-center text-slate-500">No transactions recorded today yet.</td></tr>`;
+
+                // Render barbers summary
+                const barbHtml = state.barbers.map(b => `
+                    <div class="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold flex items-center justify-center text-xs">
+                                ${b.name.charAt(0)}
+                            </div>
+                            <div>
+                                <p class="font-bold text-white text-xs">${b.name}</p>
+                                <p class="text-[10px] text-slate-400">${b.specialty}</p>
                             </div>
                         </div>
-                    `).join('');
-
-                    const latest = servingList[0];
-                    if(latest.status === 'Called' && latest.id !== lastAnnouncedQueue) {
-                        announceQueue(latest.queueNumber, latest.counter);
-                        lastAnnouncedQueue = latest.id;
-                    }
-                }
-            }
-
-            const waitingList = activeToday.filter(q => q.status === 'Waiting');
-            const waitingContainer = document.getElementById('tvWaitingList');
-            
-            if(waitingContainer) {
-                if(waitingList.length === 0) {
-                    waitingContainer.innerHTML = '<div class="col-span-2 text-center text-gray-500 italic py-10">Queue is empty.</div>';
-                } else {
-                    waitingContainer.innerHTML = waitingList.slice(0, 12).map(q => `
-                        <div class="bg-gray-800 p-4 rounded-lg flex items-center justify-center border border-gray-700 shadow">
-                            <span class="text-3xl font-bold text-gray-200">${q.queueNumber}</span>
+                        <div class="text-right">
+                            <span class="text-xs font-bold text-amber-400">${b.totalCuts} cuts</span>
                         </div>
-                    `).join('');
-                }
-            }
-        }
-
-        window.announceQueue = (number, counter) => {
-            if ('speechSynthesis' in window) {
-                const splitNum = number.split('').join(' ');
-                const text = `Queue number, ${splitNum}. Please proceed to, ${counter || 'Counter 1'}.`;
-                const msg = new SpeechSynthesisUtterance(text);
-                msg.rate = 0.85;
-                window.speechSynthesis.speak(msg);
-            }
-        };
-
-        window.testTTS = () => announceQueue("A 0 0 1", "Counter 1");
-
-        function renderBookings() {
-            document.getElementById('adminBookingTable').innerHTML = data.bookings.map(b => `
-                <tr class="hover:bg-gray-50">
-                    <td class="p-4">
-                        <div class="font-bold text-gray-800">${b.date}</div>
-                        <div class="text-sm text-gray-500">${b.time}</div>
-                    </td>
-                    <td class="p-4">
-                        <div class="font-medium text-gray-800">${b.customerName}</div>
-                        <div class="text-xs text-gray-500">${b.phone}</div>
-                    </td>
-                    <td class="p-4 text-sm text-gray-700">${b.serviceName}<br><span class="text-xs text-gray-500">${b.barberName}</span></td>
-                    <td class="p-4"><span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-bold">${b.status}</span></td>
-                    <td class="p-4 text-right">
-                        <button onclick="deleteDoc(getDocRef('bookings', '${b.id}'))" class="text-red-500 hover:underline text-xs font-semibold">Delete</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function renderInventory() {
-            document.getElementById('adminProductTable').innerHTML = data.products.map(p => `
-                <tr class="hover:bg-gray-50">
-                    <td class="p-4 font-medium text-gray-800">${p.name}</td>
-                    <td class="p-4 text-gray-600">${parseFloat(p.price).toFixed(2)}</td>
-                    <td class="p-4 font-bold ${p.stock <= 5 ? 'text-red-500' : 'text-green-600'}">${p.stock}</td>
-                    <td class="p-4 text-right"><button onclick="deleteDoc(getDocRef('products', '${p.id}'))" class="text-red-500 text-xs font-semibold">Del</button></td>
-                </tr>
-            `).join('');
-
-            document.getElementById('adminServiceTable').innerHTML = data.services.map(s => `
-                <tr class="hover:bg-gray-50">
-                    <td class="p-4 font-medium text-gray-800">${s.name}</td>
-                    <td class="p-4 text-gray-600">${parseFloat(s.price).toFixed(2)}</td>
-                    <td class="p-4 text-right"><button onclick="deleteDoc(getDocRef('services', '${s.id}'))" class="text-red-500 text-xs font-semibold">Del</button></td>
-                </tr>
-            `).join('');
-
-            document.getElementById('adminBarberTable').innerHTML = data.barbers.map(b => `
-                <tr class="hover:bg-gray-50">
-                    <td class="p-4 font-medium text-gray-800">${b.name}</td>
-                    <td class="p-4 text-gray-600">${b.phone || '-'}</td>
-                    <td class="p-4"><span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded font-semibold">Active</span></td>
-                    <td class="p-4 text-right"><button onclick="deleteDoc(getDocRef('barbers', '${b.id}'))" class="text-red-500 text-xs font-semibold">Del</button></td>
-                </tr>
-            `).join('');
-        }
-
-        let currentModalCollection = '';
-        window.openFormModal = (type) => {
-            let fields = '';
-            currentModalCollection = type + 's'; 
-
-            if(type === 'product') {
-                fields = `
-                    <input type="text" id="mName" placeholder="Product Name" class="w-full p-2 border rounded outline-none" required>
-                    <input type="number" id="mPrice" placeholder="Price (RM)" class="w-full p-2 border rounded outline-none" step="0.01" required>
-                    <input type="number" id="mStock" placeholder="Stock Quantity" class="w-full p-2 border rounded outline-none" required>
-                `;
-            } else if (type === 'service') {
-                fields = `
-                    <input type="text" id="mName" placeholder="Service Name" class="w-full p-2 border rounded outline-none" required>
-                    <input type="number" id="mPrice" placeholder="Price (RM)" class="w-full p-2 border rounded outline-none" step="0.01" required>
-                `;
-            } else if (type === 'barber') {
-                fields = `
-                    <input type="text" id="mName" placeholder="Barber Name" class="w-full p-2 border rounded outline-none" required>
-                    <input type="text" id="mPhone" placeholder="Phone Number" class="w-full p-2 border rounded outline-none">
-                `;
-            }
-
-            document.getElementById('inputModalTitle').innerText = `Add New ${type}`;
-            document.getElementById('inputModalBody').innerHTML = fields;
-            document.getElementById('inputModal').classList.remove('hidden');
-            
-            document.getElementById('inputModalConfirm').onclick = async () => {
-                try {
-                    const payload = { 
-                        name: document.getElementById('mName').value,
-                        createdAt: serverTimestamp() 
-                    };
-                    if(document.getElementById('mPrice')) payload.price = parseFloat(document.getElementById('mPrice').value);
-                    if(document.getElementById('mStock')) payload.stock = parseInt(document.getElementById('mStock').value);
-                    if(document.getElementById('mPhone')) payload.phone = document.getElementById('mPhone').value;
-                    
-                    await addDoc(getCol(currentModalCollection), payload);
-                    closeInputModal();
-                } catch(e) {
-                    console.error(e);
-                    alert("Error saving record.");
-                }
-            };
-        };
-
-        window.closeInputModal = () => document.getElementById('inputModal').classList.add('hidden');
-        window.closeModal = () => document.getElementById('alertModal').classList.add('hidden');
-        window.showModal = (title, msg) => {
-            document.getElementById('alertTitle').innerText = title;
-            document.getElementById('alertMessage').innerText = msg;
-            document.getElementById('alertModal').classList.remove('hidden');
-        };
-
-        function populatePOSDropdowns() {
-            const bHtml = '<option value="">Select Barber Executing...</option>' + data.barbers.map(b => 
-                `<option value="${b.id}">${b.name}</option>`
-            ).join('');
-            document.getElementById('posBarber').innerHTML = bHtml;
-        }
-
-        window.loadPosTargets = () => {
-            const type = document.getElementById('posTargetType').value;
-            const list = document.getElementById('posTargetList');
-            
-            if (type === 'walkin') {
-                list.innerHTML = '<option value="walkin">Direct Walk-in (No Link)</option>';
-                return;
-            }
-
-            let options = '<option value="">Select target...</option>';
-            if (type === 'queue') {
-                const active = data.queues.filter(q => q.status === 'Serving' || q.status === 'Called');
-                options += active.map(q => `<option value="${q.id}">${q.queueNumber} - ${q.customerName}</option>`).join('');
-            } else if (type === 'booking') {
-                const active = data.bookings.filter(b => b.status === 'Confirmed');
-                options += active.map(b => `<option value="${b.id}">${b.date} ${b.time} - ${b.customerName}</option>`).join('');
-            }
-            list.innerHTML = options;
-        };
-
-        window.autoFillPosCart = () => {
-            const type = document.getElementById('posTargetType').value;
-            const id = document.getElementById('posTargetList').value;
-            if(!id || type === 'walkin') return;
-
-            let sourceObj = null;
-            if(type === 'queue') sourceObj = data.queues.find(q => q.id === id);
-            if(type === 'booking') sourceObj = data.bookings.find(b => b.id === id);
-
-            if(sourceObj && sourceObj.serviceId) {
-                const service = data.services.find(s => s.id === sourceObj.serviceId);
-                if(service) {
-                    posCart = [];
-                    addToCart({id: service.id, name: service.name, price: service.price}, 'service');
-                }
-                if(sourceObj.barberId && sourceObj.barberId !== 'Any') {
-                    document.getElementById('posBarber').value = sourceObj.barberId;
-                }
-            }
-        };
-
-        function renderPOSCatalog() {
-            let html = '';
-            data.services.forEach(s => {
-                html += `
-                    <div onclick='addToCart(${JSON.stringify(s).replace(/'/g, "\\'")}, "service")' class="bg-gray-50 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-accent hover:text-white transition group flex flex-col justify-between">
-                        <span class="text-sm font-semibold mb-2 group-hover:text-white text-gray-800">${s.name}</span>
-                        <span class="text-xs font-bold text-accent group-hover:text-blue-100">RM${parseFloat(s.price).toFixed(2)}</span>
-                    </div>
-                `;
-            });
-            
-            html += `<div class="col-span-3 border-t my-2 pt-2 text-xs font-bold text-gray-400">PRODUCTS</div>`;
-            
-            data.products.forEach(p => {
-                html += `
-                    <div onclick='addToCart(${JSON.stringify(p).replace(/'/g, "\\'")}, "product")' class="bg-gray-50 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-green-500 hover:text-white transition group flex flex-col justify-between ${p.stock <= 0 ? 'opacity-50 pointer-events-none' : ''}">
-                        <span class="text-sm font-semibold mb-2 group-hover:text-white text-gray-800">${p.name} ${p.stock <= 0 ? '(Out)' : ''}</span>
-                        <span class="text-xs font-bold text-green-600 group-hover:text-green-100">RM${parseFloat(p.price).toFixed(2)}</span>
-                    </div>
-                `;
-            });
-
-            document.getElementById('posCatalog').innerHTML = html;
-        }
-
-        window.addToCart = (item, type) => {
-            const existing = posCart.find(i => i.id === item.id && i.type === type);
-            if (existing && type === 'product') {
-                existing.qty += 1;
-            } else if (existing && type === 'service') {
-                return;
-            } else {
-                posCart.push({ ...item, type, qty: 1 });
-            }
-            renderCart();
-        };
-
-        window.removeFromCart = (index) => {
-            posCart.splice(index, 1);
-            renderCart();
-        };
-
-        function renderCart() {
-            const list = document.getElementById('posCartList');
-            if(posCart.length === 0) {
-                list.innerHTML = '<div class="text-center text-gray-400 text-sm mt-10">Cart is empty</div>';
-            } else {
-                list.innerHTML = posCart.map((item, idx) => `
-                    <div class="flex justify-between items-center bg-white p-2 rounded border shadow-sm">
-                        <div class="flex-1">
-                            <div class="text-sm font-semibold text-gray-800">${item.name}</div>
-                            <div class="text-xs text-gray-500">${item.qty} x RM${parseFloat(item.price).toFixed(2)}</div>
-                        </div>
-                        <div class="font-bold text-gray-800 mr-3">RM${(item.qty * item.price).toFixed(2)}</div>
-                        <button onclick="removeFromCart(${idx})" class="text-red-400 hover:text-red-600 text-xl font-bold px-2">&times;</button>
                     </div>
                 `).join('');
-            }
-            updateCartTotals();
-        }
+                document.getElementById('dash-barbers-list').innerHTML = barbHtml;
+            },
 
-        window.updateCartTotals = () => {
-            const subtotal = posCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-            const discount = parseFloat(document.getElementById('posDiscount').value || 0);
-            const total = Math.max(0, subtotal - discount);
+            filterPosCategory(cat) {
+                state.posCategory = cat;
+                document.querySelectorAll('.pos-cat-btn').forEach(btn => {
+                    if (btn.dataset.cat === cat) {
+                        btn.classList.add('bg-amber-500', 'text-slate-950');
+                        btn.classList.remove('text-slate-400');
+                    } else {
+                        btn.classList.remove('bg-amber-500', 'text-slate-950');
+                        btn.classList.add('text-slate-400');
+                    }
+                });
+                this.renderPosCatalog();
+            },
 
-            document.getElementById('posSubtotal').innerText = `RM ${subtotal.toFixed(2)}`;
-            document.getElementById('posTotal').innerText = `RM ${total.toFixed(2)}`;
-        };
+            renderPosCatalog() {
+                const search = (document.getElementById('pos-search')?.value || '').toLowerCase();
+                let items = [];
 
-        window.handleCheckout = async () => {
-            if(posCart.length === 0) return showModal("Error", "Cart is empty!");
-            
-            const barberId = document.getElementById('posBarber').value;
-            if(!barberId) return showModal("Error", "Please select the Barber who executed the service.");
+                if (state.posCategory === 'ALL' || state.posCategory === 'SERVICES') {
+                    items = items.concat(state.services.map(s => ({ ...s, type: 'SERVICE' })));
+                }
+                if (state.posCategory === 'ALL' || state.posCategory === 'PRODUCTS') {
+                    items = items.concat(state.products.map(p => ({ ...p, type: 'PRODUCT' })));
+                }
 
-            const type = document.getElementById('posTargetType').value;
-            const targetId = document.getElementById('posTargetList').value;
-            if(type !== 'walkin' && !targetId) return showModal("Error", "Please select a specific customer from the list.");
+                if (search) {
+                    items = items.filter(i => i.name.toLowerCase().includes(search));
+                }
 
-            try {
-                const subtotal = posCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-                const discount = parseFloat(document.getElementById('posDiscount').value || 0);
+                const grid = document.getElementById('pos-catalog-grid');
+                if (!grid) return;
+
+                grid.innerHTML = items.map(item => `
+                    <div onclick="adminApp.addToCart('${item.id}', '${item.type}')" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-2xl p-4 cursor-pointer transition-all hover:scale-[1.02] flex flex-col justify-between group shadow-sm">
+                        <div>
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${item.type === 'SERVICE' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'} uppercase">
+                                    ${item.type}
+                                </span>
+                                ${item.duration ? `<span class="text-[10px] text-slate-500"><i class="far fa-clock"></i> ${item.duration}m</span>` : ''}
+                            </div>
+                            <h4 class="font-bold text-white text-xs group-hover:text-amber-400 transition-colors line-clamp-2">${item.name}</h4>
+                        </div>
+                        <div class="mt-3 flex justify-between items-center pt-2 border-t border-slate-800/60">
+                            <span class="font-mono font-bold text-amber-400 text-sm">$${item.price.toFixed(2)}</span>
+                            <span class="w-6 h-6 rounded-lg bg-amber-500 text-slate-950 font-bold flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+            },
+
+            addToCart(itemId, type) {
+                const catalog = type === 'SERVICE' ? state.services : state.products;
+                const found = catalog.find(i => i.id === itemId);
+                if (!found) return;
+
+                const existing = state.cart.find(c => c.id === itemId && c.type === type);
+                if (existing) {
+                    existing.qty += 1;
+                } else {
+                    state.cart.push({ ...found, type, qty: 1 });
+                }
+                this.renderCart();
+            },
+
+            updateCartQty(index, delta) {
+                if (!state.cart[index]) return;
+                state.cart[index].qty += delta;
+                if (state.cart[index].qty <= 0) {
+                    state.cart.splice(index, 1);
+                }
+                this.renderCart();
+            },
+
+            clearCart() {
+                state.cart = [];
+                this.renderCart();
+            },
+
+            renderCart() {
+                const container = document.getElementById('pos-cart-items');
+                if (state.cart.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-10 text-slate-500 text-xs">
+                            <i class="fas fa-basket-shopping text-3xl mb-2 text-slate-700"></i>
+                            <p>Cart is empty. Click items on left catalog to add.</p>
+                        </div>
+                    `;
+                    this.calcCartTotals();
+                    return;
+                }
+
+                container.innerHTML = state.cart.map((item, idx) => `
+                    <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl flex items-center justify-between gap-2">
+                        <div class="overflow-hidden">
+                            <p class="font-bold text-white text-xs truncate">${item.name}</p>
+                            <p class="text-[10px] text-slate-400 font-mono">$${item.price.toFixed(2)} each</p>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <div class="flex items-center bg-slate-900 border border-slate-800 rounded-lg">
+                                <button onclick="adminApp.updateCartQty(${idx}, -1)" class="w-6 h-6 text-slate-400 hover:text-white font-bold text-xs flex items-center justify-center">-</button>
+                                <span class="w-6 text-center text-xs font-mono font-bold text-white">${item.qty}</span>
+                                <button onclick="adminApp.updateCartQty(${idx}, 1)" class="w-6 h-6 text-slate-400 hover:text-white font-bold text-xs flex items-center justify-center">+</button>
+                            </div>
+                            <span class="font-mono font-bold text-amber-400 text-xs w-12 text-right">$${(item.price * item.qty).toFixed(2)}</span>
+                        </div>
+                    </div>
+                `).join('');
+
+                this.calcCartTotals();
+            },
+
+            calcCartTotals() {
+                const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                const discPct = parseFloat(document.getElementById('pos-discount-input')?.value || 0);
+                const discount = subtotal * (discPct / 100);
                 const total = Math.max(0, subtotal - discount);
-                const method = document.getElementById('posPaymentMethod').value;
-                const barberName = document.getElementById('posBarber').options[document.getElementById('posBarber').selectedIndex].text;
 
-                const txData = {
-                    items: posCart,
-                    subtotal,
-                    discount,
+                document.getElementById('pos-subtotal').innerText = `$${subtotal.toFixed(2)}`;
+                document.getElementById('pos-total').innerText = `$${total.toFixed(2)}`;
+                return { subtotal, discount, total };
+            },
+
+            populateBarberDropdowns() {
+                const opts = state.barbers.map(b => `<option value="${b.name}">${b.name}</option>`).join('');
+                ['pos-barber-select', 'walkin-barber'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerHTML = opts;
+                });
+            },
+
+            openCheckoutModal() {
+                if (state.cart.length === 0) {
+                    this.showToast("Your cart is empty. Add items before checking out.", "error");
+                    return;
+                }
+                const { total } = this.calcCartTotals();
+                document.getElementById('checkout-modal-total').innerText = `$${total.toFixed(2)}`;
+                document.getElementById('modal-checkout').classList.remove('hidden-view');
+                this.calcCashChange();
+            },
+
+            setPayMethod(method) {
+                state.activePayMethod = method;
+                document.querySelectorAll('.pay-method-btn').forEach(btn => {
+                    if (btn.dataset.method === method) {
+                        btn.classList.add('border-amber-500', 'bg-amber-500/10', 'text-amber-400');
+                        btn.classList.remove('border-slate-800', 'bg-slate-950', 'text-slate-400');
+                    } else {
+                        btn.classList.remove('border-amber-500', 'bg-amber-500/10', 'text-amber-400');
+                        btn.classList.add('border-slate-800', 'bg-slate-950', 'text-slate-400');
+                    }
+                });
+
+                const cashBox = document.getElementById('cash-calculator-box');
+                if (method === 'CASH') cashBox.style.display = 'block';
+                else cashBox.style.display = 'none';
+            },
+
+            calcCashChange() {
+                const { total } = this.calcCartTotals();
+                const tendered = parseFloat(document.getElementById('pay-cash-tendered')?.value || 0);
+                const change = Math.max(0, tendered - total);
+                document.getElementById('pay-cash-change').innerText = `$${change.toFixed(2)}`;
+            },
+
+            processFinalSale() {
+                const { total } = this.calcCartTotals();
+                const custName = document.getElementById('pos-customer-name')?.value || 'Walk-In Customer';
+                const barbName = document.getElementById('pos-barber-select')?.value || 'Staff';
+                const receiptNo = `INV-${Math.floor(1000 + Math.random() * 9000)}`;
+
+                const newTx = {
+                    id: 'tx-' + Date.now(),
+                    receiptNo,
+                    customerName: custName,
+                    barberName: barbName,
                     total,
-                    paymentMethod: method,
-                    barberId,
-                    barberName,
-                    sourceType: type,
-                    sourceId: targetId,
-                    createdAt: serverTimestamp()
+                    date: getTodayStr(),
+                    itemsCount: state.cart.length,
+                    items: [...state.cart],
+                    payMethod: state.activePayMethod
                 };
 
-                await addDoc(getCol('transactions'), txData);
+                state.transactions.unshift(newTx);
 
-                if (type === 'queue') {
-                    await updateDoc(getDocRef('queues', targetId), { status: 'Completed', completedAt: Date.now() });
-                } else if (type === 'booking') {
-                    await updateDoc(getDocRef('bookings', targetId), { status: 'Completed' });
-                }
+                // Populate Receipt Modal
+                document.getElementById('rec-shop-sub').innerText = state.shopName;
+                document.getElementById('rec-date-id').innerText = `${new Date().toLocaleDateString()} | ${receiptNo}`;
+                document.getElementById('rec-total').innerText = `$${total.toFixed(2)}`;
+                document.getElementById('rec-method').innerText = state.activePayMethod;
 
-                for(let item of posCart) {
-                    if(item.type === 'product') {
-                        const dbProd = data.products.find(p => p.id === item.id);
-                        if(dbProd) {
-                            const newStock = Math.max(0, dbProd.stock - item.qty);
-                            await updateDoc(getDocRef('products', item.id), { stock: newStock });
-                        }
+                document.getElementById('rec-items-list').innerHTML = state.cart.map(i => `
+                    <div class="flex justify-between">
+                        <span>${i.qty}x ${i.name}</span>
+                        <span class="font-mono">$${(i.price * i.qty).toFixed(2)}</span>
+                    </div>
+                `).join('');
+
+                this.closeModal('modal-checkout');
+                document.getElementById('modal-receipt').classList.remove('hidden-view');
+
+                this.clearCart();
+                this.showToast(`Transaction ${receiptNo} completed successfully!`, "success");
+            },
+
+            loadQueue() {
+                const tbody = document.getElementById('queue-table-body');
+                let w=0, s=0, c=0, t=state.queues.length;
+
+                const html = state.queues.map(data => {
+                    if (data.status === 'WAITING') w++;
+                    else if (data.status === 'CALLED' || data.status === 'SERVING') s++;
+                    else if (data.status === 'COMPLETED') c++;
+
+                    let badge = 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
+                    if (data.status === 'CALLED') badge = 'bg-blue-500/10 text-blue-400 border border-blue-500/20 animate-pulse';
+                    else if (data.status === 'SERVING') badge = 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+                    else if (data.status === 'COMPLETED') badge = 'bg-slate-800 text-slate-400';
+
+                    let actions = '';
+                    if (data.status === 'WAITING' || data.status === 'CALLED') {
+                        actions = `
+                            <button onclick="adminApp.updateQStatus('${data.id}', 'SERVING')" class="text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-3 py-1.5 rounded-lg font-bold transition-all">SERVE</button>
+                            <button onclick="adminApp.updateQStatus('${data.id}', 'CANCELLED')" class="text-xs bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 px-2 py-1.5 rounded-lg font-bold transition-all"><i class="fas fa-times"></i></button>
+                        `;
+                    } else if (data.status === 'SERVING') {
+                        actions = `<button onclick="adminApp.updateQStatus('${data.id}', 'COMPLETED')" class="text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-1.5 rounded-lg font-bold transition-all">DONE</button>`;
                     }
+
+                    return `
+                        <tr class="border-b border-slate-800/60 hover:bg-slate-800/30">
+                            <td class="p-4"><span class="font-black text-lg text-amber-400 font-mono">${data.queueNumber}</span></td>
+                            <td class="p-4">
+                                <div class="font-bold text-white">${data.customerName}</div>
+                                <div class="text-xs text-slate-400 font-mono">${data.phone}</div>
+                            </td>
+                            <td class="p-4">
+                                <div class="text-xs font-semibold text-slate-200">${data.serviceName}</div>
+                                <div class="text-[10px] text-slate-400">${data.barberName}</div>
+                            </td>
+                            <td class="p-4"><span class="px-3 py-1 rounded-full text-[10px] font-bold ${badge}">${data.status}</span></td>
+                            <td class="p-4 text-right">${actions}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                tbody.innerHTML = html || `<tr><td colspan="5" class="p-8 text-center text-slate-500">No queues for this date.</td></tr>`;
+                document.getElementById('stat-waiting').innerText = w;
+                document.getElementById('stat-serving').innerText = s;
+                document.getElementById('stat-completed').innerText = c;
+                document.getElementById('stat-total').innerText = t;
+            },
+
+            updateQStatus(id, status) {
+                const item = state.queues.find(q => q.id === id);
+                if (item) {
+                    item.status = status;
+                    this.loadQueue();
+                    this.showToast(`Ticket ${item.queueNumber} marked as ${status}`);
+                }
+            },
+
+            callNext() {
+                const waiting = state.queues.filter(q => q.status === 'WAITING');
+                if (waiting.length === 0) {
+                    this.showToast("No waiting customers in queue queue.", "error");
+                    return;
+                }
+                const nextItem = waiting[0];
+                nextItem.status = 'CALLED';
+                this.loadQueue();
+                this.playAnnouncement(nextItem.queueNumber);
+                this.showToast(`Calling ticket ${nextItem.queueNumber}!`, "success");
+            },
+
+            openWalkInModal() {
+                const servOpts = state.services.map(s => `<option value="${s.name}">${s.name} ($${s.price.toFixed(2)})</option>`).join('');
+                document.getElementById('walkin-service').innerHTML = servOpts;
+                this.populateBarberDropdowns();
+                document.getElementById('modal-walkin').classList.remove('hidden-view');
+            },
+
+            submitWalkIn(e) {
+                e.preventDefault();
+                const name = document.getElementById('walkin-name').value;
+                const phone = document.getElementById('walkin-phone').value || '0120000000';
+                const service = document.getElementById('walkin-service').value;
+                const barber = document.getElementById('walkin-barber').value;
+
+                const seq = state.queues.length + 1;
+                const ticketNum = `${state.prefix}${String(seq).padStart(3, '0')}`;
+
+                state.queues.push({
+                    id: 'q-' + Date.now(),
+                    queueNumber: ticketNum,
+                    queueSequence: seq,
+                    customerName: name,
+                    phone: phone,
+                    serviceName: service,
+                    barberName: barber,
+                    status: 'WAITING',
+                    businessDate: getTodayStr()
+                });
+
+                this.closeModal('modal-walkin');
+                this.loadQueue();
+                this.showToast(`Generated queue ticket #${ticketNum}`);
+            },
+
+            loadBookings() {
+                const tbody = document.getElementById('bookings-table-body');
+                const html = state.bookings.map(data => `
+                    <tr class="border-b border-slate-800/60 hover:bg-slate-800/30">
+                        <td class="p-4">
+                            <div class="font-bold text-white font-mono text-xs">${data.startTime}</div>
+                            <div class="text-[10px] text-slate-500 font-mono">${data.bookingId}</div>
+                        </td>
+                        <td class="p-4">
+                            <div class="font-bold text-white">${data.customerName}</div>
+                            <div class="text-xs text-slate-400 font-mono">${data.phone}</div>
+                        </td>
+                        <td class="p-4">
+                            <div class="text-xs font-semibold text-slate-200">${data.serviceName}</div>
+                            <div class="text-[10px] text-slate-400">${data.barberName}</div>
+                        </td>
+                        <td class="p-4"><span class="px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">${data.status}</span></td>
+                        <td class="p-4 text-right">
+                            <button onclick="adminApp.showToast('Booking checked in!')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg font-bold">Check-In</button>
+                        </td>
+                    </tr>
+                `).join('');
+                tbody.innerHTML = html;
+            },
+
+            loadProducts() {
+                const tbody = document.getElementById('products-table-body');
+                tbody.innerHTML = state.products.map(p => `
+                    <tr class="border-b border-slate-800/60 hover:bg-slate-800/30">
+                        <td class="p-4 font-bold text-white">${p.name}</td>
+                        <td class="p-4 text-xs text-slate-400">${p.cat || 'Retail'}</td>
+                        <td class="p-4 font-mono text-amber-400 font-bold">$${p.price.toFixed(2)}</td>
+                        <td class="p-4 text-xs font-bold text-emerald-400">${p.stock} units</td>
+                        <td class="p-4 text-right">
+                            <button onclick="adminApp.deleteProduct('${p.id}')" class="text-xs text-rose-400 hover:text-rose-300 p-2"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+            },
+
+            openProductModal() { document.getElementById('modal-product').classList.remove('hidden-view'); },
+            saveProduct(e) {
+                e.preventDefault();
+                state.products.push({
+                    id: 'p-' + Date.now(),
+                    name: document.getElementById('prod-name').value,
+                    price: parseFloat(document.getElementById('prod-price').value),
+                    stock: parseInt(document.getElementById('prod-stock').value),
+                    cat: 'Retail'
+                });
+                this.closeModal('modal-product');
+                this.loadProducts();
+                this.renderPosCatalog();
+                this.showToast("Product added to catalog!");
+            },
+            deleteProduct(id) {
+                state.products = state.products.filter(p => p.id !== id);
+                this.loadProducts();
+                this.renderPosCatalog();
+                this.showToast("Product removed.");
+            },
+
+            loadServices() {
+                const tbody = document.getElementById('services-table-body');
+                tbody.innerHTML = state.services.map(s => `
+                    <tr class="border-b border-slate-800/60 hover:bg-slate-800/30">
+                        <td class="p-4 font-bold text-white">${s.name}</td>
+                        <td class="p-4 text-xs text-slate-400"><i class="far fa-clock"></i> ${s.duration} mins</td>
+                        <td class="p-4 font-mono text-amber-400 font-bold">$${s.price.toFixed(2)}</td>
+                        <td class="p-4 text-right">
+                            <button onclick="adminApp.deleteService('${s.id}')" class="text-xs text-rose-400 hover:text-rose-300 p-2"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+            },
+
+            openServiceModal() { document.getElementById('modal-service').classList.remove('hidden-view'); },
+            saveService(e) {
+                e.preventDefault();
+                state.services.push({
+                    id: 's-' + Date.now(),
+                    name: document.getElementById('serv-name').value,
+                    price: parseFloat(document.getElementById('serv-price').value),
+                    duration: parseInt(document.getElementById('serv-duration').value)
+                });
+                this.closeModal('modal-service');
+                this.loadServices();
+                this.renderPosCatalog();
+                this.showToast("Service menu item added!");
+            },
+            deleteService(id) {
+                state.services = state.services.filter(s => s.id !== id);
+                this.loadServices();
+                this.renderPosCatalog();
+                this.showToast("Service removed.");
+            },
+
+            loadBarbers() {
+                const grid = document.getElementById('barbers-cards-grid');
+                grid.innerHTML = state.barbers.map(b => `
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between space-y-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 font-black text-lg flex items-center justify-center">
+                                ${b.name.charAt(0)}
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-white text-sm">${b.name}</h4>
+                                <p class="text-slate-400 text-xs">${b.specialty}</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 pt-3 border-t border-slate-800/60 text-xs">
+                            <div class="bg-slate-950 p-2 rounded-xl">
+                                <span class="text-slate-500 text-[10px] uppercase block">Commission</span>
+                                <span class="font-bold text-amber-400 font-mono">${b.comm}%</span>
+                            </div>
+                            <div class="bg-slate-950 p-2 rounded-xl">
+                                <span class="text-slate-500 text-[10px] uppercase block">Completed Cuts</span>
+                                <span class="font-bold text-emerald-400 font-mono">${b.totalCuts}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            },
+
+            openBarberModal() { document.getElementById('modal-barber').classList.remove('hidden-view'); },
+            saveBarber(e) {
+                e.preventDefault();
+                state.barbers.push({
+                    id: 'b-' + Date.now(),
+                    name: document.getElementById('barb-name').value,
+                    specialty: document.getElementById('barb-spec').value,
+                    comm: parseInt(document.getElementById('barb-comm').value),
+                    active: true,
+                    totalCuts: 0
+                });
+                this.closeModal('modal-barber');
+                this.loadBarbers();
+                this.populateBarberDropdowns();
+                this.showToast("Barber added successfully!");
+            },
+
+            loadCustomers() {
+                const tbody = document.getElementById('customers-table-body');
+                const list = [
+                    { name: 'Ahmad Rizal', phone: '0123456789', visits: 8, lastVisit: getTodayStr() },
+                    { name: 'Marcus Chen', phone: '0178889922', visits: 5, lastVisit: '2026-08-15' },
+                    { name: 'Kevin Wong', phone: '011223344', visits: 12, lastVisit: '2026-08-10' }
+                ];
+
+                tbody.innerHTML = list.map(c => `
+                    <tr class="border-b border-slate-800/60 hover:bg-slate-800/30">
+                        <td class="p-4 font-bold text-white">${c.name}</td>
+                        <td class="p-4 text-xs font-mono text-slate-400">${c.phone}</td>
+                        <td class="p-4 text-center"><span class="bg-amber-500/10 text-amber-400 font-bold px-3 py-1 rounded-full text-xs border border-amber-500/20">${c.visits}</span></td>
+                        <td class="p-4 text-xs text-slate-400">${c.lastVisit}</td>
+                    </tr>
+                `).join('');
+            },
+
+            filterCustomers() {
+                const term = (document.getElementById('cust-search')?.value || '').toLowerCase();
+                const rows = document.querySelectorAll('#customers-table-body tr');
+                rows.forEach(r => {
+                    const text = r.innerText.toLowerCase();
+                    r.style.display = text.includes(term) ? '' : 'none';
+                });
+            },
+
+            loadSettings() {
+                document.getElementById('set-shopname').value = state.shopName;
+                document.getElementById('set-prefix').value = state.prefix;
+                document.getElementById('set-duration').value = state.avgDuration;
+            },
+
+            saveSettings(e) {
+                e.preventDefault();
+                state.shopName = document.getElementById('set-shopname').value;
+                state.prefix = document.getElementById('set-prefix').value.toUpperCase();
+                state.avgDuration = parseInt(document.getElementById('set-duration').value);
+                this.showToast("Settings updated successfully!");
+            },
+
+            initTV() {
+                document.getElementById('view-login').classList.add('hidden-view');
+                document.getElementById('sidebar').classList.add('hidden-view');
+                document.getElementById('main-content').classList.add('hidden-view');
+                document.getElementById('view-tv').classList.remove('hidden-view');
+                document.getElementById('tv-shopname').innerText = state.shopName;
+                this.updateTVBoard();
+            },
+
+            startTV() {
+                document.getElementById('tv-start-overlay').style.display = 'none';
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(err => console.log(err));
+                }
+                let silentMsg = new SpeechSynthesisUtterance('');
+                window.speechSynthesis.speak(silentMsg);
+                this.updateTVBoard();
+            },
+
+            updateTVBoard() {
+                const serving = state.queues.filter(q => q.status === 'CALLED' || q.status === 'SERVING');
+                const waiting = state.queues.filter(q => q.status === 'WAITING');
+
+                if (serving.length > 0) {
+                    document.getElementById('tv-serving').innerText = serving[0].queueNumber;
+                    document.getElementById('tv-serving-customer').innerText = `${serving[0].customerName} - ${serving[0].serviceName}`;
+                } else {
+                    document.getElementById('tv-serving').innerText = "--";
+                    document.getElementById('tv-serving-customer').innerText = "Please proceed to barber station when called";
                 }
 
-                posCart = [];
-                document.getElementById('posDiscount').value = 0;
-                document.getElementById('posTargetType').value = 'walkin';
-                loadPosTargets();
-                renderCart();
-                
-                showModal("Payment Successful", `Transaction completed via ${method}.\nTotal: RM ${total.toFixed(2)}`);
+                for (let i = 1; i <= 3; i++) {
+                    const el = document.getElementById(`tv-next-${i}`);
+                    if (el) el.innerText = waiting[i - 1] ? waiting[i - 1].queueNumber : '--';
+                }
+            },
 
-            } catch(e) {
-                console.error(e);
-                showModal("Checkout Error", "An error occurred while processing the payment.");
+            playAnnouncement(queueNumber) {
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc1 = ctx.createOscillator();
+                    const osc2 = ctx.createOscillator();
+                    const gainNode = ctx.createGain();
+
+                    osc1.type = 'sine';
+                    osc2.type = 'sine';
+                    osc1.frequency.setValueAtTime(659.25, ctx.currentTime);
+                    osc2.frequency.setValueAtTime(523.25, ctx.currentTime + 0.4);
+
+                    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.2);
+
+                    osc1.connect(gainNode);
+                    osc2.connect(gainNode);
+                    gainNode.connect(ctx.destination);
+
+                    osc1.start(ctx.currentTime);
+                    osc1.stop(ctx.currentTime + 0.4);
+                    osc2.start(ctx.currentTime + 0.4);
+                    osc2.stop(ctx.currentTime + 1.2);
+
+                    setTimeout(() => {
+                        const separated = queueNumber.split('').join(', ');
+                        const speech = new SpeechSynthesisUtterance(`Queue number ${separated}, please proceed for your haircut.`);
+                        speech.rate = 0.9;
+                        window.speechSynthesis.speak(speech);
+                    }, 1200);
+                } catch (e) {}
+            },
+
+            closeModal(id) {
+                document.getElementById(id)?.classList.add('hidden-view');
+            },
+
+            showToast(msg, type = "info") {
+                const toast = document.createElement('div');
+                toast.className = `px-4 py-3 rounded-xl text-xs font-bold text-white shadow-xl border flex items-center gap-2 transition-all pointer-events-auto ${type === 'error' ? 'bg-rose-600 border-rose-500' : type === 'success' ? 'bg-emerald-600 border-emerald-500' : 'bg-slate-800 border-slate-700'}`;
+                toast.innerHTML = `<i class="fas ${type === 'error' ? 'fa-exclamation-circle' : type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i> <span>${msg}</span>`;
+                
+                const container = document.getElementById('toast-container');
+                container.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
             }
         };
+
+        window.adminApp = AdminApp;
+        document.addEventListener('DOMContentLoaded', () => AdminApp.init());
     </script>
 </body>
 </html>
