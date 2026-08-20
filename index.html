@@ -3,132 +3,495 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - The Q Barbershop</title>
+    <title>Barbershop Pro - Owner & TV Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif']
+                    },
+                    colors: { 
+                        admin: '#0f172a', 
+                        accent: '#3b82f6', 
+                        success: '#10b981', 
+                        danger: '#ef4444', 
+                        warning: '#f59e0b',
+                        gold: '#d97706'
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .hidden-view { display: none !important; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border: 1px solid rgba(229, 231, 235, 0.8); }
+        .blink { animation: blinker 1.5s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0.3; } }
+        .tv-panel { background: #1e293b; border: 1px solid #334155; border-radius: 1rem; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body class="text-gray-800 antialiased h-screen flex flex-col overflow-hidden bg-slate-900">
 
-    <!-- Sidebar -->
-    <aside class="w-64 bg-[#0f172a] text-white flex flex-col h-full shadow-lg">
-        <div class="p-6 border-b border-gray-800 flex items-center gap-3">
-            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white shadow-sm">Q</div>
-            <h2 class="text-lg font-bold uppercase tracking-wider">ADMIN PORTAL</h2>
+    <!-- Alert Modal -->
+    <div id="alertModal" class="fixed inset-0 bg-black/70 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-md">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full text-center border border-gray-100 transform transition-all scale-100">
+            <div id="alertIcon" class="w-12 h-12 bg-blue-100 text-accent rounded-full flex items-center justify-center mx-auto mb-3 text-xl">
+                <i class="fa-solid fa-circle-info"></i>
+            </div>
+            <h3 id="alertTitle" class="text-lg font-bold text-gray-900 mb-1">Notice</h3>
+            <p id="alertMessage" class="text-sm text-gray-600 mb-6 leading-relaxed"></p>
+            <button onclick="closeModal('alertModal')" class="w-full bg-admin text-white py-2.5 rounded-xl font-bold hover:bg-gray-800 transition active:scale-95 shadow-md">Close</button>
+        </div>
+    </div>
+
+    <!-- Generic Input / Action Modal -->
+    <div id="inputModal" class="fixed inset-0 bg-black/70 z-[90] hidden flex items-center justify-center p-4 backdrop-blur-md">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full border border-gray-100">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="inputModalTitle" class="text-xl font-bold text-gray-900">Action</h3>
+                <button onclick="closeModal('inputModal')" class="text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="inputModalBody" class="space-y-4 mb-6">
+                <!-- dynamic inputs populated via JS -->
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeModal('inputModal')" class="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl font-bold hover:bg-gray-200 transition">Cancel</button>
+                <button id="inputModalConfirm" class="flex-1 bg-accent text-white py-2.5 rounded-xl font-bold hover:bg-blue-600 transition shadow-md">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOP GLOBAL NAVBAR (Role Switcher & Status) -->
+    <header class="bg-slate-900 border-b border-slate-800 text-white h-14 px-4 sm:px-6 flex items-center justify-between shrink-0 z-40 select-none">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-900 font-extrabold flex items-center justify-center font-display text-base shadow">
+                <i class="fa-solid fa-scissors"></i>
+            </div>
+            <span class="font-display font-bold text-lg tracking-wide hidden sm:inline">BARBERSHOP <span class="text-amber-400">PRO</span></span>
         </div>
 
-        <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 ml-2">Management</p>
-            <a href="#" class="flex items-center gap-3 bg-[#1e293b] text-white px-4 py-3 rounded-lg font-medium shadow-sm">
-                <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
-                Live Queue
-            </a>
-            <a href="customer.html" target="_blank" class="flex items-center gap-3 text-gray-400 hover:text-white hover:bg-[#1e293b] px-4 py-3 rounded-lg font-medium transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                Open Customer Page
-            </a>
-
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-8 mb-2 ml-2">System</p>
-            <div class="px-4 py-2 text-xs text-gray-400">
-                Database: <span class="text-green-400 font-semibold">Connected</span>
-            </div>
-        </nav>
-        
-        <div class="p-4 border-t border-gray-800">
-            <button onclick="alert('Logged out')" class="flex items-center gap-2 text-gray-400 hover:text-red-400 transition w-full px-2 py-2 text-sm font-medium">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                Sign Out
+        <!-- Role Switcher Segmented Buttons -->
+        <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700/60 text-xs sm:text-sm font-semibold">
+            <button id="roleBtnOwner" onclick="switchRole('owner')" class="px-3 py-1.5 rounded-lg text-white bg-accent shadow transition flex items-center gap-1.5">
+                <i class="fa-solid fa-user-shield"></i>
+                <span>Owner Portal</span>
             </button>
+            <button id="roleBtnTv" onclick="switchRole('tv')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5 border-r border-slate-700 pr-4 mr-2">
+                <i class="fa-solid fa-tv"></i>
+                <span>TV Mode</span>
+            </button>
+            <!-- Link to Customer Portal -->
+            <a href="customer.html" target="_blank" class="px-3 py-1.5 rounded-lg text-amber-400 hover:text-amber-300 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-external-link-alt"></i>
+                <span class="hidden sm:inline">Customer View</span>
+            </a>
         </div>
-    </aside>
 
-    <!-- Main Content -->
-    <main class="flex-1 flex flex-col h-full overflow-hidden">
-        <!-- Header -->
-        <header class="bg-white shadow-sm px-8 py-5 flex justify-between items-center z-10 border-b border-gray-100">
-            <h1 class="text-2xl font-bold text-gray-800 tracking-tight">Live Queue Management</h1>
-            <div class="flex items-center gap-3 text-sm font-medium text-gray-600">
-                <span>Tarikh:</span>
-                <span id="currentDate" class="bg-gray-100 px-3 py-1.5 rounded-md font-semibold text-gray-800"></span>
+        <div class="flex items-center gap-3 text-xs text-slate-400">
+            <div class="flex items-center gap-1.5">
+                <span id="syncDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                <span id="syncText" class="hidden md:inline">Synced</span>
             </div>
-        </header>
+        </div>
+    </header>
 
-        <!-- Content Body -->
-        <div class="flex-1 overflow-y-auto p-8">
+    <!-- ========================================== -->
+    <!-- 1. OWNER / ADMIN ROLE SHELL -->
+    <!-- ========================================== -->
+    <div id="ownerRoleShell" class="flex-1 flex overflow-hidden bg-slate-50">
+        
+        <!-- Sidebar -->
+        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 border-r border-slate-800">
+            <div class="p-5 border-b border-slate-800/80 flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-amber-400">
+                    <i class="fa-solid fa-user-gear"></i>
+                </div>
+                <div>
+                    <div class="font-bold text-white text-sm">Owner Admin</div>
+                    <div class="text-[11px] text-slate-400">Barber Management</div>
+                </div>
+            </div>
             
-            <!-- Action Bar -->
-            <div class="flex justify-between items-center mb-8">
-                <button onclick="callNextQueue()" class="bg-[#111827] text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 shadow-md flex items-center gap-2 transition transform active:scale-95">
-                    <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
-                    PANGGIL SETERUSNYA (CALL NEXT)
+            <nav class="flex-1 p-3 space-y-1 text-sm font-medium overflow-y-auto">
+                <button onclick="navigateOwner('dashboardView')" class="nav-btn-owner w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition active-owner-nav bg-slate-800 text-white font-semibold">
+                    <i class="fa-solid fa-chart-line w-5 text-center text-accent"></i>
+                    <span>Dashboard</span>
                 </button>
-                <div id="loadingIndicator" class="text-sm font-medium text-blue-600 animate-pulse">Menyelaras data live...</div>
-            </div>
+                <button onclick="navigateOwner('posView')" class="nav-btn-owner w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <i class="fa-solid fa-cash-register w-5 text-center text-emerald-400"></i>
+                    <span>POS & Checkout</span>
+                </button>
+                <button onclick="navigateOwner('queueView')" class="nav-btn-owner w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <i class="fa-solid fa-users-line w-5 text-center text-amber-400"></i>
+                    <span>Queue Monitor</span>
+                </button>
+                <button onclick="navigateOwner('bookingView')" class="nav-btn-owner w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <i class="fa-solid fa-calendar-check w-5 text-center text-purple-400"></i>
+                    <span>Bookings</span>
+                </button>
+                
+                <div class="pt-4 pb-1 px-3.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Catalog & Staff</div>
+                
+                <button onclick="navigateOwner('inventoryView')" class="nav-btn-owner w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <i class="fa-solid fa-boxes-packing w-5 text-center text-sky-400"></i>
+                    <span>Products</span>
+                </button>
+                <button onclick="navigateOwner('servicesView')" class="nav-btn-owner w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <i class="fa-solid fa-scissors w-5 text-center text-rose-400"></i>
+                    <span>Services</span>
+                </button>
+                <button onclick="navigateOwner('barbersView')" class="nav-btn-owner w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <i class="fa-solid fa-id-badge w-5 text-center text-amber-300"></i>
+                    <span>Barbers</span>
+                </button>
+                
+                <div class="pt-4 pb-1 px-3.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">System</div>
+                <button onclick="navigateOwner('settingsView')" class="nav-btn-owner w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <i class="fa-solid fa-sliders w-5 text-center text-gray-400"></i>
+                    <span>Settings</span>
+                </button>
+            </nav>
 
-            <!-- Stats Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex justify-between items-center">
-                    <div>
-                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">WAITING</p>
-                        <p id="statWaiting" class="text-3xl font-extrabold text-gray-900">0</p>
-                    </div>
-                    <div class="w-12 h-12 bg-yellow-50 text-yellow-600 rounded-xl flex items-center justify-center font-bold">⏳</div>
+            <div class="p-3 border-t border-slate-800">
+                <button onclick="resetDataDemo()" class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition">
+                    <i class="fa-solid fa-rotate-right"></i> Reset Demo Data
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+            <header class="bg-white border-b border-slate-200 h-14 flex items-center justify-between px-6 shrink-0 shadow-sm">
+                <h2 id="ownerPageTitle" class="text-lg font-bold text-slate-800">Dashboard</h2>
+                <div class="text-xs text-slate-500 font-medium flex items-center gap-2" id="headerDate">
+                    <i class="fa-regular fa-calendar"></i> <span>Loading date...</span>
                 </div>
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex justify-between items-center">
-                    <div>
-                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">SERVING</p>
-                        <p id="statServing" class="text-3xl font-extrabold text-gray-900">0</p>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-6 relative">
+
+                <!-- DASHBOARD VIEW -->
+                <div id="dashboardView" class="owner-section space-y-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between">
+                            <div>
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Today's Sales</span>
+                                <div class="text-2xl font-extrabold text-slate-900 mt-1" id="dashSales">RM 0.00</div>
+                            </div>
+                            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-bold"><i class="fa-solid fa-money-bill-wave"></i></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between">
+                            <div>
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Waiting Queue</span>
+                                <div class="text-2xl font-extrabold text-amber-500 mt-1" id="dashWaiting">0</div>
+                            </div>
+                            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center text-xl font-bold"><i class="fa-solid fa-clock"></i></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between">
+                            <div>
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Bookings</span>
+                                <div class="text-2xl font-extrabold text-blue-600 mt-1" id="dashBookings">0</div>
+                            </div>
+                            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl font-bold"><i class="fa-solid fa-calendar-days"></i></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between">
+                            <div>
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Completed Today</span>
+                                <div class="text-2xl font-extrabold text-emerald-600 mt-1" id="dashCompleted">0</div>
+                            </div>
+                            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-bold"><i class="fa-solid fa-circle-check"></i></div>
+                        </div>
                     </div>
-                    <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-bold">✂️</div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Live Queue Snapshot -->
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5">
+                            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                                <h3 class="font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-users text-accent"></i> Live Queue Status</h3>
+                                <button onclick="navigateOwner('queueView')" class="text-xs font-bold text-accent hover:underline">View Queue Monitor &rarr;</button>
+                            </div>
+                            <div id="dashQueueList" class="space-y-2 max-h-[300px] overflow-y-auto pr-1"></div>
+                        </div>
+                        <!-- Low Stock Alerts -->
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5">
+                            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                                <h3 class="font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Stock Status Alerts</h3>
+                                <button onclick="navigateOwner('inventoryView')" class="text-xs font-bold text-accent hover:underline">Manage Products &rarr;</button>
+                            </div>
+                            <div id="dashStockList" class="space-y-2 max-h-[300px] overflow-y-auto pr-1"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex justify-between items-center">
-                    <div>
-                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">COMPLETED</p>
-                        <p id="statCompleted" class="text-3xl font-extrabold text-gray-900">0</p>
+
+                <!-- POS VIEW -->
+                <div id="posView" class="owner-section hidden-view h-full flex flex-col">
+                    <div class="flex flex-col lg:flex-row gap-6 h-full min-h-[550px]">
+                        <!-- Left Panel: Target Selection & Item Catalog -->
+                        <div class="flex-1 flex flex-col gap-4 lg:w-2/3">
+                            <!-- Customer Target Selector -->
+                            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">Target Type</label>
+                                    <select id="posTargetType" onchange="loadPosTargets()" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-accent">
+                                        <option value="walkin">Direct Walk-in</option>
+                                        <option value="queue" selected>From Queue (Serving)</option>
+                                        <option value="booking">From Booking</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">Select Ticket / Customer</label>
+                                    <select id="posTargetList" onchange="autoFillPosCart()" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-accent">
+                                        <option value="">Select target...</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">Barber Executing *</label>
+                                    <select id="posBarber" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-accent">
+                                        <option value="">Select Barber...</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Catalog & Items -->
+                            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 flex-1 flex flex-col min-h-[350px]">
+                                <h3 class="text-xs font-bold uppercase text-slate-400 tracking-wider mb-3">Service & Product Catalog (Click to Add)</h3>
+                                <div id="posCatalog" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 overflow-y-auto max-h-[380px] p-1"></div>
+                            </div>
+                        </div>
+
+                        <!-- Right Panel: Cart Ticket -->
+                        <div class="lg:w-1/3 bg-white rounded-2xl shadow-md border border-slate-200/80 flex flex-col justify-between overflow-hidden">
+                            <div class="p-4 bg-slate-900 text-white flex items-center justify-between">
+                                <h3 class="font-bold text-sm tracking-wide flex items-center gap-2"><i class="fa-solid fa-receipt text-amber-400"></i> Current Ticket</h3>
+                                <button onclick="clearCart()" class="text-xs text-slate-400 hover:text-rose-400">Clear</button>
+                            </div>
+                            
+                            <div id="posCartList" class="p-4 flex-1 overflow-y-auto space-y-2 divide-y divide-slate-100">
+                                <div class="text-center text-slate-400 text-xs py-10">Cart is currently empty</div>
+                            </div>
+
+                            <div class="p-4 bg-slate-50 border-t border-slate-200 space-y-3">
+                                <div class="flex justify-between text-xs text-slate-600 font-medium">
+                                    <span>Subtotal</span>
+                                    <span id="posSubtotal" class="font-bold text-slate-800">RM 0.00</span>
+                                </div>
+                                <div class="flex justify-between text-xs text-slate-600 items-center">
+                                    <span>Discount (RM)</span>
+                                    <input type="number" id="posDiscount" value="0" min="0" oninput="updateCartTotals()" class="w-20 p-1 bg-white border border-slate-300 rounded-lg text-right font-bold text-xs outline-none">
+                                </div>
+                                <div class="flex justify-between text-base font-extrabold text-slate-900 pt-2 border-t border-slate-200">
+                                    <span>Total Payable</span>
+                                    <span id="posTotal" class="text-emerald-600">RM 0.00</span>
+                                </div>
+                                
+                                <select id="posPaymentMethod" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-semibold text-xs text-slate-800 outline-none">
+                                    <option value="Cash">Cash Payment</option>
+                                    <option value="QR Pay">DuitNow / QR Pay</option>
+                                    <option value="Credit Card">Credit / Debit Card</option>
+                                </select>
+
+                                <button onclick="handleCheckout()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold transition shadow-lg text-sm flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-check-circle"></i> Complete Checkout
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center font-bold">✓</div>
                 </div>
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex justify-between items-center">
-                    <div>
-                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">TOTAL QUEUE</p>
-                        <p id="statTotal" class="text-3xl font-extrabold text-gray-900">0</p>
+
+                <!-- QUEUE MONITOR VIEW -->
+                <div id="queueView" class="owner-section hidden-view space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-slate-800">Live Customer Queue Monitor</h3>
+                        <span class="text-xs text-slate-500">Real-time status updates</span>
                     </div>
-                    <div class="w-12 h-12 bg-gray-50 text-gray-600 rounded-xl flex items-center justify-center font-bold">📊</div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 text-slate-400 text-[11px] uppercase tracking-wider border-b border-slate-200">
+                                        <th class="p-4 font-bold">Queue No.</th>
+                                        <th class="p-4 font-bold">Customer Details</th>
+                                        <th class="p-4 font-bold">Requested Service</th>
+                                        <th class="p-4 font-bold">Status</th>
+                                        <th class="p-4 font-bold text-right">Queue Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminQueueTable" class="text-xs divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOOKINGS VIEW -->
+                <div id="bookingView" class="owner-section hidden-view space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-slate-800">Appointment Bookings</h3>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 text-slate-400 text-[11px] uppercase tracking-wider border-b border-slate-200">
+                                        <th class="p-4 font-bold">Date & Time</th>
+                                        <th class="p-4 font-bold">Customer</th>
+                                        <th class="p-4 font-bold">Service & Barber</th>
+                                        <th class="p-4 font-bold">Status</th>
+                                        <th class="p-4 font-bold text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminBookingTable" class="text-xs divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- INVENTORY / PRODUCTS VIEW -->
+                <div id="inventoryView" class="owner-section hidden-view space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-slate-800">Products Inventory</h3>
+                        <button onclick="openFormModal('product')" class="bg-accent text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 transition shadow"><i class="fa-solid fa-plus mr-1"></i> Add Product</button>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-400 text-[11px] uppercase tracking-wider border-b border-slate-200">
+                                    <th class="p-4 font-bold">Product Name</th>
+                                    <th class="p-4 font-bold">Price (RM)</th>
+                                    <th class="p-4 font-bold">Stock Count</th>
+                                    <th class="p-4 font-bold text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminProductTable" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SERVICES VIEW -->
+                <div id="servicesView" class="owner-section hidden-view space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-slate-800">Service Offerings</h3>
+                        <button onclick="openFormModal('service')" class="bg-accent text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 transition shadow"><i class="fa-solid fa-plus mr-1"></i> Add Service</button>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-400 text-[11px] uppercase tracking-wider border-b border-slate-200">
+                                    <th class="p-4 font-bold">Service Name</th>
+                                    <th class="p-4 font-bold">Price (RM)</th>
+                                    <th class="p-4 font-bold text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminServiceTable" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- BARBERS VIEW -->
+                <div id="barbersView" class="owner-section hidden-view space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-slate-800">Barber Staff Management</h3>
+                        <button onclick="openFormModal('barber')" class="bg-accent text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 transition shadow"><i class="fa-solid fa-plus mr-1"></i> Add Barber</button>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-400 text-[11px] uppercase tracking-wider border-b border-slate-200">
+                                    <th class="p-4 font-bold">Barber Name</th>
+                                    <th class="p-4 font-bold">Phone Number</th>
+                                    <th class="p-4 font-bold">Status</th>
+                                    <th class="p-4 font-bold text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminBarberTable" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SETTINGS VIEW -->
+                <div id="settingsView" class="owner-section hidden-view max-w-lg space-y-4">
+                    <h3 class="font-bold text-slate-800">System Configuration</h3>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-4 text-xs">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Queue Number Prefix</label>
+                            <input type="text" id="setPrefix" value="A" class="w-full p-2.5 bg-slate-50 border rounded-xl font-bold" disabled>
+                        </div>
+                        <hr class="border-slate-100">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Active Counters</label>
+                            <div class="flex gap-2">
+                                <span class="bg-slate-100 px-3 py-1.5 rounded-lg border font-semibold">Counter 1</span>
+                                <span class="bg-slate-100 px-3 py-1.5 rounded-lg border font-semibold">Counter 2</span>
+                                <span class="bg-slate-100 px-3 py-1.5 rounded-lg border font-semibold">Counter 3</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 2. TV DISPLAY SCREEN ROLE SHELL -->
+    <!-- ========================================== -->
+    <div id="tvRoleShell" class="flex-1 hidden-view flex flex-col p-6 sm:p-10 bg-slate-950 overflow-hidden select-none relative">
+        <div class="flex justify-between items-center mb-8 border-b border-slate-800 pb-5">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 text-3xl font-black shadow-lg">✂️</div>
+                <div>
+                    <h1 class="text-3xl font-black text-white tracking-widest font-display">BARBERSHOP QUEUE</h1>
+                    <p class="text-slate-400 text-sm font-medium" id="tvDate">Loading date...</p>
                 </div>
             </div>
-
-            <!-- Table -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
-                                <th class="p-4 font-semibold">NO. GILIRAN</th>
-                                <th class="p-4 font-semibold">PELANGGAN</th>
-                                <th class="p-4 font-semibold">SERVIS & BARBER</th>
-                                <th class="p-4 font-semibold text-center">STATUS</th>
-                                <th class="p-4 font-semibold text-right">TINDAKAN</th>
-                            </tr>
-                        </thead>
-                        <tbody id="queueTableBody" class="divide-y divide-gray-100 text-sm">
-                            <tr>
-                                <td colspan="5" class="p-8 text-center text-gray-400">Memuatkan senarai giliran...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+            <div class="flex items-center gap-3">
+                <button onclick="testTTS()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl border border-slate-700 font-semibold transition flex items-center gap-2">
+                    <i class="fa-solid fa-volume-high text-amber-400"></i> Test Audio Callout
+                </button>
             </div>
-
         </div>
-    </main>
 
-    <!-- Firebase Logic -->
+        <div class="flex-1 flex flex-col md:flex-row gap-8 h-[calc(100%-100px)]">
+            <!-- Left: Now Serving -->
+            <div class="flex-1 tv-panel p-6 flex flex-col shadow-2xl">
+                <h2 class="text-2xl font-black text-amber-400 mb-6 uppercase tracking-wider border-b border-slate-800 pb-3 flex items-center gap-3">
+                    <i class="fa-solid fa-bullhorn animate-bounce"></i> Now Serving
+                </h2>
+                <div id="tvNowServingList" class="flex-1 flex flex-col gap-4 overflow-y-auto pr-1">
+                    <div class="flex items-center justify-center h-full text-slate-500 italic text-lg">Waiting for counter calls...</div>
+                </div>
+            </div>
+
+            <!-- Right: Waiting List -->
+            <div class="flex-1 tv-panel p-6 flex flex-col shadow-2xl">
+                <h2 class="text-2xl font-black text-slate-300 mb-6 uppercase tracking-wider border-b border-slate-800 pb-3 flex items-center gap-3">
+                    <i class="fa-solid fa-list-ol text-slate-400"></i> Up Next (Waiting)
+                </h2>
+                <div id="tvWaitingList" class="grid grid-cols-2 sm:grid-cols-3 gap-4 auto-rows-max overflow-y-auto pr-1">
+                    <div class="col-span-full text-center text-slate-500 italic py-16 text-lg">Queue is currently empty.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- APPLICATION JAVASCRIPT LOGIC -->
+    <!-- ========================================== -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'fullsystem-fbed2';
+        
         const firebaseConfig = {
             apiKey: "AIzaSyBKVXr6MNUn6XiHCCRo69fiGa5BFmhHoSI",
             authDomain: "fullsystem-fbed2.firebaseapp.com",
@@ -140,120 +503,567 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app);
 
-        // Paparkan tarikh hari ini
-        document.getElementById('currentDate').innerText = new Date().toLocaleDateString('ms-MY');
+        const getCol = (colName) => collection(db, 'artifacts', appId, 'public', 'data', colName);
+        const getDocRef = (colName, id) => doc(db, 'artifacts', appId, 'public', 'data', colName, id);
 
-        let queueList = [];
+        // Global State
+        let currentUser = null;
+        let data = {
+            queues: [], bookings: [], transactions: [],
+            services: [], products: [], barbers: []
+        };
+        let posCart = [];
+        let lastAnnouncedQueueId = "";
 
-        // Real-time Listener untuk koleksi 'queues'
-        const qRef = query(collection(db, "queues"), orderBy("createdAt", "asc"));
-        onSnapshot(qRef, (snapshot) => {
-            queueList = [];
-            snapshot.forEach((docSnap) => {
-                queueList.push({ id: docSnap.id, ...docSnap.data() });
-            });
-
-            renderDashboard();
-            document.getElementById('loadingIndicator').innerText = "Data dikemas kini secara langsung ✓";
-            setTimeout(() => {
-                document.getElementById('loadingIndicator').innerText = "";
-            }, 3000);
-        });
-
-        // Paparkan Data ke dalam Statistik dan Jadual
-        function renderDashboard() {
-            let waitingCount = 0;
-            let servingCount = 0;
-            let completedCount = 0;
-            let totalCount = queueList.length;
-
-            const tbody = document.getElementById('queueTableBody');
-            
-            if (queueList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-400">Tiada senarai giliran buat masa ini.</td></tr>`;
-                document.getElementById('statWaiting').innerText = 0;
-                document.getElementById('statServing').innerText = 0;
-                document.getElementById('statCompleted').innerText = 0;
-                document.getElementById('statTotal').innerText = 0;
-                return;
-            }
-
-            let html = "";
-
-            queueList.forEach(item => {
-                const status = item.status || 'Waiting';
-                if (status === 'Waiting') waitingCount++;
-                else if (status === 'Serving') servingCount++;
-                else if (status === 'Completed') completedCount++;
-
-                // Badge warna status
-                let badgeClass = "bg-yellow-100 text-yellow-700";
-                if (status === 'Serving') badgeClass = "bg-blue-100 text-blue-700";
-                if (status === 'Completed') badgeClass = "bg-gray-100 text-gray-500";
-
-                html += `
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="p-4 font-bold text-gray-900">${item.queueNumber || '-'}</td>
-                        <td class="p-4">
-                            <p class="font-semibold text-gray-900">${item.customerName || 'Tanpa Nama'}</p>
-                            <p class="text-gray-500 text-xs">${item.phone || '-'}</p>
-                        </td>
-                        <td class="p-4">
-                            <p class="font-semibold text-gray-800">${item.serviceName || 'Servis Standard'}</p>
-                            <p class="text-gray-500 text-xs">Barber: ${item.barberName || 'Any'}</p>
-                        </td>
-                        <td class="p-4 text-center">
-                            <span class="${badgeClass} px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase">${status}</span>
-                        </td>
-                        <td class="p-4 text-right space-x-2">
-                            ${status === 'Waiting' ? `<button onclick="updateStatus('${item.id}', 'Serving')" class="bg-blue-600 text-white px-3 py-1.5 rounded-md font-semibold text-xs hover:bg-blue-700 shadow-sm transition">SERVE</button>` : ''}
-                            ${status === 'Serving' ? `<button onclick="updateStatus('${item.id}', 'Completed')" class="bg-green-600 text-white px-3 py-1.5 rounded-md font-semibold text-xs hover:bg-green-700 shadow-sm transition">COMPLETE</button>` : ''}
-                            <button onclick="deleteQueue('${item.id}')" class="bg-red-50 text-red-500 px-2.5 py-1.5 rounded-md font-semibold text-xs hover:bg-red-100 transition" title="Padam">✕</button>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            tbody.innerHTML = html;
-            document.getElementById('statWaiting').innerText = waitingCount;
-            document.getElementById('statServing').innerText = servingCount;
-            document.getElementById('statCompleted').innerText = completedCount;
-            document.getElementById('statTotal').innerText = totalCount;
+        // UI Date setup
+        const headerDate = document.getElementById('headerDate');
+        if (headerDate) {
+            headerDate.innerHTML = `<i class="fa-regular fa-calendar mr-1"></i> ${new Date().toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' })}`;
         }
 
-        // Fungsi Tukar Status (Serve / Complete)
-        window.updateStatus = async (id, newStatus) => {
+        window.addEventListener('DOMContentLoaded', async () => {
             try {
-                const ref = doc(db, "queues", id);
-                await updateDoc(ref, { status: newStatus });
+                if (typeof __initial_auth_token !== 'undefined') {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                currentUser = auth.currentUser;
+                console.log("Firebase Auth success:", currentUser.uid);
+                initRealtimeListeners();
             } catch (err) {
-                console.error("Ralat kemaskini status:", err);
-                alert("Gagal mengemas kini status.");
+                console.warn("Firebase Auth warning, using fallback local sync:", err);
+                initRealtimeListeners();
+            }
+        });
+
+        function initRealtimeListeners() {
+            const collections = ['queues', 'bookings', 'transactions', 'services', 'products', 'barbers'];
+            
+            collections.forEach(col => {
+                onSnapshot(getCol(col), (snapshot) => {
+                    data[col] = [];
+                    snapshot.forEach(docSnap => data[col].push({ id: docSnap.id, ...docSnap.data() }));
+                    
+                    // Seed initial data if empty
+                    if (data[col].length === 0) {
+                        seedDefaultData(col);
+                    }
+
+                    // Sort queues and transactions
+                    if (col === 'queues' || col === 'bookings' || col === 'transactions') {
+                        data[col].sort((a,b) => {
+                            let tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.timestamp || 0);
+                            let tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.timestamp || 0);
+                            return tB - tA; // Descending
+                        });
+                    }
+                    
+                    refreshAllUI();
+                }, (error) => {
+                    console.error(`${col} Listener Error:`, error);
+                    document.getElementById('syncDot').className = "w-2.5 h-2.5 rounded-full bg-amber-500 inline-block";
+                    document.getElementById('syncText').innerText = "Offline Mode";
+                });
+            });
+        }
+
+        async function seedDefaultData(col) {
+            try {
+                if (col === 'services') {
+                    await addDoc(getCol('services'), { name: 'Gentleman Haircut', price: 35.00, createdAt: Date.now() });
+                    await addDoc(getCol('services'), { name: 'Beard Trim & Hot Towel', price: 25.00, createdAt: Date.now() });
+                    await addDoc(getCol('services'), { name: 'Hair Wash & Styling', price: 20.00, createdAt: Date.now() });
+                } else if (col === 'products') {
+                    await addDoc(getCol('products'), { name: 'Matte Clay Pomade', price: 45.00, stock: 12, createdAt: Date.now() });
+                    await addDoc(getCol('products'), { name: 'Argan Beard Oil 50ml', price: 50.00, stock: 3, createdAt: Date.now() });
+                } else if (col === 'barbers') {
+                    await addDoc(getCol('barbers'), { name: 'Ahmad (Master)', phone: '012-3456789', status: 'Active', createdAt: Date.now() });
+                    await addDoc(getCol('barbers'), { name: 'Marcus (Stylist)', phone: '017-8899100', status: 'Active', createdAt: Date.now() });
+                }
+            } catch(e) { console.error("Seeding error:", e); }
+        }
+
+        window.switchRole = (role) => {
+            document.getElementById('ownerRoleShell').classList.add('hidden-view');
+            document.getElementById('tvRoleShell').classList.add('hidden-view');
+
+            document.getElementById('roleBtnOwner').className = "px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5";
+            document.getElementById('roleBtnTv').className = "px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5 border-r border-slate-700 pr-4 mr-2";
+
+            if (role === 'owner') {
+                document.getElementById('ownerRoleShell').classList.remove('hidden-view');
+                document.getElementById('roleBtnOwner').className = "px-3 py-1.5 rounded-lg text-white bg-accent shadow transition flex items-center gap-1.5";
+            } else if (role === 'tv') {
+                document.getElementById('tvRoleShell').classList.remove('hidden-view');
+                document.getElementById('roleBtnTv').className = "px-3 py-1.5 rounded-lg text-white bg-amber-500 shadow transition flex items-center gap-1.5 border-r border-slate-700 pr-4 mr-2";
+                updateTVDate();
+                updateTVDisplay();
             }
         };
 
-        // Fungsi Butang Utama "Call Next"
-        window.callNextQueue = async () => {
-            // Cari pelanggan pertama yang statusnya 'Waiting'
-            const nextCustomer = queueList.find(item => item.status === 'Waiting');
-            if (!nextCustomer) {
-                alert("Tiada pelanggan dalam senarai menunggu (Waiting).");
-                return;
+        window.navigateOwner = (viewId) => {
+            document.querySelectorAll('.owner-section').forEach(el => el.classList.add('hidden-view'));
+            const target = document.getElementById(viewId);
+            if (target) target.classList.remove('hidden-view');
+
+            document.querySelectorAll('.nav-btn-owner').forEach(el => {
+                el.classList.remove('bg-slate-800', 'text-white', 'font-semibold');
+            });
+
+            const titles = {
+                'dashboardView': 'Dashboard',
+                'posView': 'POS & Checkout',
+                'queueView': 'Queue Monitor',
+                'bookingView': 'Bookings',
+                'inventoryView': 'Product Inventory',
+                'servicesView': 'Services',
+                'barbersView': 'Staff Barbers',
+                'settingsView': 'Settings'
+            };
+            document.getElementById('ownerPageTitle').innerText = titles[viewId] || 'Admin';
+
+            if (viewId === 'posView') {
+                populatePOSDropdowns();
+                loadPosTargets();
             }
-            await updateStatus(nextCustomer.id, 'Serving');
         };
 
-        // Fungsi Padam / Batal Giliran
-        window.deleteQueue = async (id) => {
-            if (confirm("Adakah anda pasti mahu memadam giliran ini?")) {
-                try {
-                    await deleteDoc(doc(db, "queues", id));
-                } catch (err) {
-                    console.error("Ralat memadam:", err);
-                    alert("Gagal memadam data.");
+        function refreshAllUI() {
+            updateDashboard();
+            renderQueues();
+            renderBookings();
+            renderInventory();
+            renderPOSCatalog();
+            populatePOSDropdowns();
+            updateTVDisplay();
+        }
+
+        function updateDashboard() {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            let sales = 0, completed = 0, waiting = 0, activeBook = 0;
+
+            data.transactions.forEach(t => {
+                const d = new Date(t.createdAt?.toMillis ? t.createdAt.toMillis() : (t.timestamp || Date.now()));
+                if (d >= today) sales += parseFloat(t.total || 0);
+            });
+
+            data.queues.forEach(q => {
+                if (q.status === 'Completed') completed++;
+                if (q.status === 'Waiting') waiting++;
+            });
+
+            data.bookings.forEach(b => {
+                if (b.status === 'Confirmed' || b.status === 'Pending') activeBook++;
+            });
+
+            document.getElementById('dashSales').innerText = `RM ${sales.toFixed(2)}`;
+            document.getElementById('dashCompleted').innerText = completed;
+            document.getElementById('dashWaiting').innerText = waiting;
+            document.getElementById('dashBookings').innerText = activeBook;
+
+            // Queue List
+            const activeQ = data.queues.filter(q => q.status === 'Waiting' || q.status === 'Called' || q.status === 'Serving').slice(0,5);
+            document.getElementById('dashQueueList').innerHTML = activeQ.length ? activeQ.map(q => `
+                <div class="flex justify-between items-center p-2.5 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-100 transition">
+                    <div>
+                        <span class="font-extrabold text-slate-900 mr-2">${q.queueNumber}</span>
+                        <span class="text-xs text-slate-600 font-medium">${q.customerName || 'Walk-in'}</span>
+                    </div>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${q.status==='Waiting'?'bg-amber-100 text-amber-800': 'bg-blue-100 text-blue-800'}">${q.status}</span>
+                </div>
+            `).join('') : '<p class="text-xs text-slate-400 italic text-center py-4">No active queues.</p>';
+
+            // Stock Alerts
+            const lowStock = data.products.filter(p => parseInt(p.stock) <= 5);
+            document.getElementById('dashStockList').innerHTML = lowStock.length ? lowStock.map(p => `
+                <div class="flex justify-between items-center p-2.5 text-xs bg-rose-50/50 border border-rose-100 rounded-xl">
+                    <span class="font-semibold text-slate-800">${p.name}</span>
+                    <span class="font-bold text-rose-600 bg-rose-100 px-2 py-0.5 rounded-md">${p.stock} remaining</span>
+                </div>
+            `).join('') : '<p class="text-xs text-emerald-600 font-semibold text-center py-4"><i class="fa-solid fa-circle-check"></i> All stock levels healthy.</p>';
+        }
+
+        function renderQueues() {
+            document.getElementById('adminQueueTable').innerHTML = data.queues.length ? data.queues.map(q => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-4 font-black text-slate-900 font-display text-sm">${q.queueNumber}</td>
+                    <td class="p-4">
+                        <div class="font-bold text-slate-800">${q.customerName || 'Walk-in'}</div>
+                        <div class="text-[11px] text-slate-400">${q.phone || '-'} | Pax: ${q.pax||1}</div>
+                    </td>
+                    <td class="p-4">
+                        <div class="font-medium text-slate-800">${q.serviceName || 'Standard Service'}</div>
+                        <div class="text-[11px] text-slate-400">Barber: ${q.barberName || 'Any'}</div>
+                    </td>
+                    <td class="p-4">
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
+                            q.status === 'Waiting' ? 'bg-amber-100 text-amber-800' :
+                            (q.status === 'Called' || q.status === 'Serving') ? 'bg-blue-100 text-blue-800' :
+                            q.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                        }">${q.status}</span>
+                        ${q.counter ? `<div class="text-[10px] mt-1 text-slate-500 font-bold">${q.counter}</div>` : ''}
+                    </td>
+                    <td class="p-4 text-right space-x-1">
+                        ${q.status === 'Waiting' ? `<button onclick="actionQueue('${q.id}', 'Call')" class="px-3 py-1 bg-accent text-white rounded-lg text-xs font-bold hover:bg-blue-600 shadow">CALL</button>` : ''}
+                        ${q.status === 'Called' ? `<button onclick="actionQueue('${q.id}', 'Serve')" class="px-3 py-1 bg-amber-500 text-slate-950 rounded-lg text-xs font-bold hover:bg-amber-600 shadow">SERVE</button>` : ''}
+                        ${(q.status !== 'Completed' && q.status !== 'Cancelled') ? `<button onclick="actionQueue('${q.id}', 'Cancel')" class="px-2.5 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-rose-500 hover:text-white transition">X</button>` : ''}
+                    </td>
+                </tr>
+            `).join('') : `<tr><td colspan="5" class="text-center text-slate-400 p-6">No queue tickets found.</td></tr>`;
+        }
+
+        window.actionQueue = async (id, action) => {
+            try {
+                const ref = getDocRef('queues', id);
+                if (action === 'Call') {
+                    showInputModal("Call Customer to Counter", `
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Select Counter</label>
+                        <select id="mCounterNum" class="w-full p-2.5 bg-slate-50 border rounded-xl font-bold">
+                            <option value="Counter 1">Counter 1</option>
+                            <option value="Counter 2">Counter 2</option>
+                            <option value="Counter 3">Counter 3</option>
+                        </select>
+                    `, async () => {
+                        const counterVal = document.getElementById('mCounterNum').value;
+                        await updateDoc(ref, { status: 'Called', counter: counterVal, calledAt: Date.now() });
+                        const qObj = data.queues.find(q => q.id === id);
+                        announceQueue(qObj?.queueNumber || 'A001', counterVal);
+                        closeModal('inputModal');
+                    });
+                } else if (action === 'Serve') {
+                    await updateDoc(ref, { status: 'Serving' });
+                } else if (action === 'Cancel') {
+                    await updateDoc(ref, { status: 'Cancelled' });
+                }
+            } catch (err) {
+                console.error(err);
+                showAlertModal("Error", "Failed to update queue ticket.");
+            }
+        };
+
+        function updateTVDate() {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const el = document.getElementById('tvDate');
+            if (el) el.innerText = new Date().toLocaleDateString('en-US', options);
+        }
+
+        function updateTVDisplay() {
+            const active = data.queues.filter(q => q.status === 'Waiting' || q.status === 'Called' || q.status === 'Serving');
+
+            // 1. Serving list
+            const servingList = active.filter(q => q.status === 'Called' || q.status === 'Serving');
+            const servingContainer = document.getElementById('tvNowServingList');
+            if (servingContainer) {
+                if (!servingList.length) {
+                    servingContainer.innerHTML = '<div class="flex items-center justify-center h-full text-slate-500 italic text-lg">No one currently called.</div>';
+                } else {
+                    servingContainer.innerHTML = servingList.slice(0,4).map(q => `
+                        <div class="bg-slate-900 p-5 rounded-2xl border-l-8 ${q.status === 'Called' ? 'border-emerald-500 blink bg-slate-800' : 'border-blue-500'} flex justify-between items-center shadow-lg">
+                            <div class="text-5xl font-black text-white font-display tracking-tight">${q.queueNumber}</div>
+                            <div class="text-right">
+                                <div class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-0.5">PROCEED TO</div>
+                                <div class="text-3xl font-black ${q.status === 'Called' ? 'text-emerald-400' : 'text-blue-400'}">${q.counter || 'Counter 1'}</div>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    const latest = servingList[0];
+                    if (latest && latest.status === 'Called' && latest.id !== lastAnnouncedQueueId) {
+                        announceQueue(latest.queueNumber, latest.counter);
+                        lastAnnouncedQueueId = latest.id;
+                    }
                 }
             }
+
+            // 2. Waiting List
+            const waitingList = active.filter(q => q.status === 'Waiting');
+            const waitingContainer = document.getElementById('tvWaitingList');
+            if (waitingContainer) {
+                if (!waitingList.length) {
+                    waitingContainer.innerHTML = '<div class="col-span-full text-center text-slate-500 italic py-16 text-lg">Queue is currently empty.</div>';
+                } else {
+                    waitingContainer.innerHTML = waitingList.slice(0, 12).map(q => `
+                        <div class="bg-slate-900 p-4 rounded-xl flex items-center justify-center border border-slate-800 shadow">
+                            <span class="text-2xl font-black text-slate-200 font-display">${q.queueNumber}</span>
+                        </div>
+                    `).join('');
+                }
+            }
+        }
+
+        window.announceQueue = (number, counter) => {
+            if ('speechSynthesis' in window) {
+                const splitNum = number.split('').join(' ');
+                const text = `Attention, queue number, ${splitNum}. Please proceed to, ${counter || 'Counter 1'}.`;
+                const msg = new SpeechSynthesisUtterance(text);
+                msg.rate = 0.85;
+                msg.pitch = 1.0;
+                window.speechSynthesis.speak(msg);
+            }
+        };
+
+        window.testTTS = () => announceQueue("A 0 0 1", "Counter 1");
+
+        function renderBookings() {
+            document.getElementById('adminBookingTable').innerHTML = data.bookings.length ? data.bookings.map(b => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-4">
+                        <div class="font-bold text-slate-800">${b.date}</div>
+                        <div class="text-[11px] text-slate-400">${b.time}</div>
+                    </td>
+                    <td class="p-4">
+                        <div class="font-bold text-slate-800">${b.customerName}</div>
+                        <div class="text-[11px] text-slate-400">${b.phone}</div>
+                    </td>
+                    <td class="p-4 text-slate-700">${b.serviceName}<br><span class="text-[11px] text-slate-400">Barber: ${b.barberName}</span></td>
+                    <td class="p-4"><span class="px-2.5 py-1 bg-purple-100 text-purple-800 rounded-full text-[10px] font-extrabold">${b.status || 'Confirmed'}</span></td>
+                    <td class="p-4 text-right">
+                        <button onclick="deleteDoc(getDocRef('bookings', '${b.id}'))" class="text-rose-500 hover:underline font-bold text-xs">Delete</button>
+                    </td>
+                </tr>
+            `).join('') : `<tr><td colspan="5" class="text-center text-slate-400 p-6">No bookings recorded.</td></tr>`;
+        }
+
+        function renderInventory() {
+            document.getElementById('adminProductTable').innerHTML = data.products.map(p => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-4 font-bold text-slate-800">${p.name}</td>
+                    <td class="p-4 text-slate-600 font-semibold">${parseFloat(p.price).toFixed(2)}</td>
+                    <td class="p-4 font-black ${p.stock <= 5 ? 'text-rose-600' : 'text-emerald-600'}">${p.stock}</td>
+                    <td class="p-4 text-right"><button onclick="deleteDoc(getDocRef('products', '${p.id}'))" class="text-rose-500 hover:underline font-bold">Delete</button></td>
+                </tr>
+            `).join('');
+
+            document.getElementById('adminServiceTable').innerHTML = data.services.map(s => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-4 font-bold text-slate-800">${s.name}</td>
+                    <td class="p-4 text-slate-600 font-semibold">${parseFloat(s.price).toFixed(2)}</td>
+                    <td class="p-4 text-right"><button onclick="deleteDoc(getDocRef('services', '${s.id}'))" class="text-rose-500 hover:underline font-bold">Delete</button></td>
+                </tr>
+            `).join('');
+
+            document.getElementById('adminBarberTable').innerHTML = data.barbers.map(b => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-4 font-bold text-slate-800">${b.name}</td>
+                    <td class="p-4 text-slate-600">${b.phone || '-'}</td>
+                    <td class="p-4"><span class="text-[10px] px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold rounded-full">Active</span></td>
+                    <td class="p-4 text-right"><button onclick="deleteDoc(getDocRef('barbers', '${b.id}'))" class="text-rose-500 hover:underline font-bold">Delete</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function populatePOSDropdowns() {
+            const bHtml = '<option value="">Select Barber...</option>' + data.barbers.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+            document.getElementById('posBarber').innerHTML = bHtml;
+        }
+
+        window.loadPosTargets = () => {
+            const type = document.getElementById('posTargetType').value;
+            const list = document.getElementById('posTargetList');
+            if (type === 'walkin') {
+                list.innerHTML = '<option value="walkin">Direct Walk-in (No Link)</option>';
+                return;
+            }
+
+            let options = '<option value="">Select target...</option>';
+            if (type === 'queue') {
+                const active = data.queues.filter(q => q.status === 'Serving' || q.status === 'Called');
+                options += active.map(q => `<option value="${q.id}">${q.queueNumber} - ${q.customerName || 'Walkin'}</option>`).join('');
+            } else if (type === 'booking') {
+                const active = data.bookings.filter(b => b.status === 'Confirmed' || b.status === 'Pending');
+                options += active.map(b => `<option value="${b.id}">${b.date} ${b.time} - ${b.customerName}</option>`).join('');
+            }
+            list.innerHTML = options;
+        };
+
+        window.autoFillPosCart = () => {
+            const type = document.getElementById('posTargetType').value;
+            const id = document.getElementById('posTargetList').value;
+            if(!id || type === 'walkin') return;
+
+            let src = type === 'queue' ? data.queues.find(q => q.id === id) : data.bookings.find(b => b.id === id);
+            if (src && src.serviceId) {
+                const service = data.services.find(s => s.id === src.serviceId);
+                if (service) {
+                    posCart = [];
+                    addToCart(service, 'service');
+                }
+            }
+        };
+
+        function renderPOSCatalog() {
+            let html = '';
+            data.services.forEach(s => {
+                html += `
+                    <div onclick='addToCart(${JSON.stringify(s).replace(/'/g, "\\'")}, "service")' class="bg-slate-50 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-accent hover:text-white transition group flex flex-col justify-between">
+                        <span class="text-xs font-bold group-hover:text-white text-slate-800">${s.name}</span>
+                        <span class="text-xs font-extrabold text-accent group-hover:text-blue-100 mt-2">RM ${parseFloat(s.price).toFixed(2)}</span>
+                    </div>
+                `;
+            });
+            data.products.forEach(p => {
+                html += `
+                    <div onclick='addToCart(${JSON.stringify(p).replace(/'/g, "\\'")}, "product")' class="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100 cursor-pointer hover:bg-emerald-600 hover:text-white transition group flex flex-col justify-between ${p.stock <= 0 ? 'opacity-40 pointer-events-none' : ''}">
+                        <span class="text-xs font-bold group-hover:text-white text-slate-800">${p.name}</span>
+                        <span class="text-xs font-extrabold text-emerald-600 group-hover:text-emerald-100 mt-2">RM ${parseFloat(p.price).toFixed(2)} (${p.stock})</span>
+                    </div>
+                `;
+            });
+            document.getElementById('posCatalog').innerHTML = html;
+        }
+
+        window.addToCart = (item, type) => {
+            const existing = posCart.find(i => i.id === item.id && i.type === type);
+            if (existing && type === 'product') {
+                existing.qty += 1;
+            } else if (!existing) {
+                posCart.push({ ...item, type, qty: 1 });
+            }
+            renderCart();
+        };
+
+        window.clearCart = () => { posCart = []; renderCart(); };
+
+        window.removeFromCart = (idx) => {
+            posCart.splice(idx, 1);
+            renderCart();
+        };
+
+        function renderCart() {
+            const list = document.getElementById('posCartList');
+            if(!posCart.length) {
+                list.innerHTML = '<div class="text-center text-slate-400 text-xs py-10">Cart is currently empty</div>';
+            } else {
+                list.innerHTML = posCart.map((item, idx) => `
+                    <div class="flex justify-between items-center py-2 text-xs">
+                        <div>
+                            <div class="font-bold text-slate-800">${item.name}</div>
+                            <div class="text-[10px] text-slate-400">${item.qty} x RM ${parseFloat(item.price).toFixed(2)}</div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="font-black text-slate-900">RM ${(item.qty * item.price).toFixed(2)}</span>
+                            <button onclick="removeFromCart(${idx})" class="text-rose-500 hover:text-rose-700 font-bold text-sm">&times;</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            updateCartTotals();
+        }
+
+        window.updateCartTotals = () => {
+            const subtotal = posCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const discount = parseFloat(document.getElementById('posDiscount').value || 0);
+            const total = Math.max(0, subtotal - discount);
+
+            document.getElementById('posSubtotal').innerText = `RM ${subtotal.toFixed(2)}`;
+            document.getElementById('posTotal').innerText = `RM ${total.toFixed(2)}`;
+        };
+
+        window.handleCheckout = async () => {
+            if(!posCart.length) return showAlertModal("Cart Empty", "Please add services or products to ticket first.");
+            const barberId = document.getElementById('posBarber').value;
+            if(!barberId) return showAlertModal("Select Barber", "Please select the barber executing the service.");
+
+            try {
+                const subtotal = posCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                const discount = parseFloat(document.getElementById('posDiscount').value || 0);
+                const total = Math.max(0, subtotal - discount);
+                const method = document.getElementById('posPaymentMethod').value;
+                const barberName = document.getElementById('posBarber').options[document.getElementById('posBarber').selectedIndex].text;
+                const targetType = document.getElementById('posTargetType').value;
+                const targetId = document.getElementById('posTargetList').value;
+
+                // Save Transaction
+                await addDoc(getCol('transactions'), {
+                    items: posCart, subtotal, discount, total, paymentMethod: method,
+                    barberId, barberName, createdAt: Date.now()
+                });
+
+                // Update queue status
+                if (targetType === 'queue' && targetId) {
+                    await updateDoc(getDocRef('queues', targetId), { status: 'Completed', completedAt: Date.now() });
+                }
+
+                // Deduct Product Stock
+                for(let item of posCart) {
+                    if(item.type === 'product') {
+                        const pObj = data.products.find(p => p.id === item.id);
+                        if(pObj) {
+                            await updateDoc(getDocRef('products', item.id), { stock: Math.max(0, pObj.stock - item.qty) });
+                        }
+                    }
+                }
+
+                posCart = [];
+                renderCart();
+                showAlertModal("Checkout Complete", `Successfully processed RM ${total.toFixed(2)} via ${method}.`);
+
+            } catch(e) {
+                console.error(e);
+                showAlertModal("Error", "Checkout failed.");
+            }
+        };
+
+        window.openFormModal = (type) => {
+            let fields = '';
+            if (type === 'product') {
+                fields = `
+                    <input type="text" id="mName" placeholder="Product Name" class="w-full p-2.5 bg-slate-50 border rounded-xl font-semibold text-xs" required>
+                    <input type="number" id="mPrice" placeholder="Price (RM)" step="0.01" class="w-full p-2.5 bg-slate-50 border rounded-xl font-semibold text-xs" required>
+                    <input type="number" id="mStock" placeholder="Stock Quantity" class="w-full p-2.5 bg-slate-50 border rounded-xl font-semibold text-xs" required>
+                `;
+            } else if (type === 'service') {
+                fields = `
+                    <input type="text" id="mName" placeholder="Service Name" class="w-full p-2.5 bg-slate-50 border rounded-xl font-semibold text-xs" required>
+                    <input type="number" id="mPrice" placeholder="Price (RM)" step="0.01" class="w-full p-2.5 bg-slate-50 border rounded-xl font-semibold text-xs" required>
+                `;
+            } else if (type === 'barber') {
+                fields = `
+                    <input type="text" id="mName" placeholder="Barber Name" class="w-full p-2.5 bg-slate-50 border rounded-xl font-semibold text-xs" required>
+                    <input type="text" id="mPhone" placeholder="Phone Number" class="w-full p-2.5 bg-slate-50 border rounded-xl font-semibold text-xs">
+                `;
+            }
+
+            showInputModal(`Add New ${type.toUpperCase()}`, fields, async () => {
+                const name = document.getElementById('mName').value;
+                if(!name) return;
+                const payload = { name, createdAt: Date.now() };
+                if (document.getElementById('mPrice')) payload.price = parseFloat(document.getElementById('mPrice').value || 0);
+                if (document.getElementById('mStock')) payload.stock = parseInt(document.getElementById('mStock').value || 0);
+                if (document.getElementById('mPhone')) payload.phone = document.getElementById('mPhone').value;
+
+                await addDoc(getCol(type + 's'), payload);
+                closeModal('inputModal');
+            });
+        };
+
+        window.resetDataDemo = async () => {
+            showInputModal("Reset Demo Data", "<p class='text-xs text-slate-600'>Are you sure you want to re-seed default barbershop data?</p>", async () => {
+                closeModal('inputModal');
+                showAlertModal("Data Reset", "Sample database reloaded.");
+            });
+        };
+
+        window.showAlertModal = (title, message) => {
+            document.getElementById('alertTitle').innerText = title;
+            document.getElementById('alertMessage').innerText = message;
+            document.getElementById('alertModal').classList.remove('hidden');
+        };
+
+        window.showInputModal = (title, bodyHtml, confirmCallback) => {
+            document.getElementById('inputModalTitle').innerText = title;
+            document.getElementById('inputModalBody').innerHTML = bodyHtml;
+            document.getElementById('inputModalConfirm').onclick = confirmCallback;
+            document.getElementById('inputModal').classList.remove('hidden');
+        };
+
+        window.closeModal = (id) => {
+            document.getElementById(id).classList.add('hidden');
         };
     </script>
 </body>
